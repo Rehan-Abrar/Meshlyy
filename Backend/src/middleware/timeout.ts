@@ -1,13 +1,18 @@
-import type { NextFunction, Request, Response } from 'express';
+// Global request timeout middleware
 
-export function requestTimeout(timeoutMs = 5000) {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    req.setTimeout(timeoutMs);
-    res.setTimeout(timeoutMs, () => {
-      if (!res.headersSent) {
-        res.status(503).json({ error: { code: 'REQUEST_TIMEOUT', message: 'Request timed out.' } });
-      }
-    });
+import { Request, Response, NextFunction } from 'express';
+import timeout from 'connect-timeout';
+import config from '../config/env';
+import { sendError } from '../lib/errors';
+
+export function timeoutMiddleware() {
+  return timeout(config.REQUEST_TIMEOUT_MS);
+}
+
+export function haltOnTimeout(req: Request, res: Response, next: NextFunction) {
+  if (!req.timedout) {
     next();
-  };
+  } else {
+    sendError(res, 503, 'REQUEST_TIMEOUT', 'Request exceeded timeout limit');
+  }
 }

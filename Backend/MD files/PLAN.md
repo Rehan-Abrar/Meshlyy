@@ -5,12 +5,15 @@
 - v1.0: Full rewrite. Two-sided Instagram marketplace. Covers auth, roles, onboarding, subscriptions, discovery, campaigns, AI co-pilot, admin/trust layer, integrations, and infrastructure.
 - v2.0: Auth source-of-truth unified to Supabase Auth (password_hash removed). JWT slimmed to identity-only claims; mutable state loaded from DB on every protected request. In-memory lock/cache/budget interfaces abstracted for Redis swap. Partial unique indexes replace plain UNIQUE on soft-deletable fields. Supabase session management replaces custom refresh token flow. Admin audit trail added (DB table + structured logs). AI response logging policy defined (redaction + 30-day retention). Subscription errors changed from 402 to 403 + SUBSCRIPTION_REQUIRED. OpenAI fallback deferred to post-MVP. Cloudinary upload URL scoping enforced. Resubmission throttle and handle-release flow added. ai_outputs table added to schema. Phase ordering conflict resolved.
 - v2.1: Subscription monetization deferred to post-MVP. MVP keeps schema scaffolding only (subscriptions table + optional authContext fields), disables tier enforcement and feature gates, and opens AI co-pilot to all authenticated brands with budget caps still enforced.
+- v2.2: Product positioning reframed as an AI-powered campaign intelligence platform with an influencer marketplace execution layer. AI co-pilot expanded from single brief generation to a multi-tool Campaign Intelligence Suite (`strategy`, `brief`, `fit_score`, `content_brief`). `ai_outputs` extended with `ai_tool_type` for observability and admin filtering.
 
 ---
 
 ## Purpose
 
-This document is the complete, build-ready backend specification for Meshly — a two-sided influencer marketplace connecting Brands and Influencers on Instagram. It defines every service, data model, endpoint contract, middleware rule, and integration required to ship a functional MVP.
+Meshly is an AI-powered marketing platform for brands — combining campaign intelligence tools with an influencer marketplace. Brands plan, build, and refine campaigns with AI, then discover and connect with the right creators to execute them.
+
+This document is the complete, build-ready backend specification for that workflow. It defines every service, data model, endpoint contract, middleware rule, and integration required to ship a functional MVP where influencer discovery is the execution layer of a broader AI marketing system.
 
 ---
 
@@ -24,7 +27,7 @@ This document is the complete, build-ready backend specification for Meshly — 
 - **Media:** Cloudinary (images and portfolio assets).
 - **AI:** Gemini only for MVP. OpenAI fallback deferred to post-MVP.
 - **Scraping:** Apify for Instagram handle verification and stats ingestion.
-- **Email:** SendGrid or Postmark for transactional notifications.
+- **Email:** Resend for transactional notifications.
 - **Monitoring:** Winston/Morgan for structured logging; Sentry for exception tracking.
 
 ---
@@ -175,7 +178,10 @@ MVP implementations use `node-cache` and in-memory `Map`. Swapping to Redis requ
 | `GET /v1/campaigns/matched` | Yes (INFLUENCER) | Rate-limited. Brief data truncated. |
 | `POST /v1/campaigns` | Yes (BRAND) | MVP: role-based access only. |
 | `POST /v1/shortlists/*` | Yes (BRAND) | Scoped to `brand_id` from authContext. |
+| `POST /v1/ai/strategy` | Yes (BRAND) | Role + budget gated (no subscription gate in MVP). |
 | `POST /v1/ai/brief` | Yes (BRAND) | Role + budget gated (no subscription gate in MVP). |
+| `POST /v1/ai/fit-score/:influencerId` | Yes (BRAND) | Role + budget gated (no subscription gate in MVP). |
+| `POST /v1/ai/content-brief/:influencerId` | Yes (BRAND) | Role + budget gated (no subscription gate in MVP). |
 | `GET /v1/media/upload-url` | Yes (any role) | URL scoped to `req.authContext.userId` only. |
 | `POST /v1/onboarding/*` | Yes (any role) | No onboarding guard applied. |
 | `GET /v1/admin/*` | Yes (ADMIN) | Admin role only. |
@@ -468,6 +474,7 @@ Stores redacted AI co-pilot outputs for admin review. Raw prompt and response co
 | `id` | UUID | PK |
 | `brand_id` | UUID | FK → brand_profiles.id |
 | `campaign_id` | UUID | FK → campaigns.id, NULLABLE |
+| `ai_tool_type` | TEXT | NOT NULL — allowed values: 'brief', 'strategy', 'fit_score', 'content_brief' |
 | `prompt_version` | TEXT | NOT NULL — e.g. 'brief-v1.0.0' |
 | `token_count` | INT | |
 | `latency_ms` | INT | |
@@ -475,7 +482,7 @@ Stores redacted AI co-pilot outputs for admin review. Raw prompt and response co
 | `failure_reason` | TEXT | Populated on parse failure; null on success |
 | `created_at` | TIMESTAMPTZ | DEFAULT now() |
 
-`GET /v1/admin/ai-outputs` reads from this table. No raw AI content is stored or surfaced. Admins can see volume, latency, schema validity rate, and failure reasons.
+`GET /v1/admin/ai-outputs` reads from this table. No raw AI content is stored or surfaced. Admins can see volume, latency, schema validity rate, failure reasons, and per-tool usage trends. Endpoint supports optional filter `?tool_type=`.
 
 ---
 
@@ -675,10 +682,13 @@ All cache operations go through `CacheStore`. Direct calls to `node-cache` are f
 ### Brand Campaign Flow
 
 1. Brand creates a campaign (`POST /v1/campaigns`) — status `DRAFT`.
-2. Brand uses AI co-pilot to generate brief (`POST /v1/ai/brief`) → `brief_data` and `brief_preview` saved to campaign.
-3. Brand activates campaign (`PATCH /v1/campaigns/:id/status`) → status `ACTIVE`.
-4. Brand searches discovery, adds influencers to shortlist (`POST /v1/shortlists`).
-5. Brand sends collaboration invites from shortlist (`POST /v1/collaborations/invite`).
+2. Brand generates campaign strategy (`POST /v1/ai/strategy`) to define angles, cadence, KPIs, and recommended creator profile.
+3. Brand generates campaign brief (`POST /v1/ai/brief`) → `brief_data` and `brief_preview` saved to campaign.
+4. Brand activates campaign (`PATCH /v1/campaigns/:id/status`) → status `ACTIVE`.
+5. Brand searches discovery, adds influencers to shortlist (`POST /v1/shortlists`).
+6. Brand evaluates shortlisted creators with AI fit scoring (`POST /v1/ai/fit-score/:influencerId`).
+7. Brand generates per-influencer content brief (`POST /v1/ai/content-brief/:influencerId`) before invite.
+8. Brand sends collaboration invites from shortlist (`POST /v1/collaborations/invite`).
 
 ### Influencer Engagement Flow
 
@@ -701,21 +711,40 @@ All campaign and shortlist mutations enforce `req.authContext.brandId === resour
 
 Brands only (all authenticated brands in MVP). Budget middleware runs before every call via `BudgetStore`.
 
+### Campaign Intelligence Suite Tools
+
+| Tool | Endpoint | Output |
+|---|---|---|
+| Campaign Strategy | `POST /v1/ai/strategy` | Strategy with content angles, cadence, KPI targets, and recommended creator profile |
+| Campaign Brief | `POST /v1/ai/brief` | Structured `brief_data` and `brief_preview` |
+| Influencer Fit Score | `POST /v1/ai/fit-score/:influencerId` | Fit score (0–100) plus natural language rationale, strengths, and risks |
+| Influencer Content Brief | `POST /v1/ai/content-brief/:influencerId` | Influencer-specific talking points, tone guidance, dos/don'ts, and CTA |
+
+Recommended brand flow: `strategy -> brief -> discovery -> fit_score -> content_brief -> invite`.
+
+Strategy output should pre-populate discovery filters (`niche`, follower range, `engagement_min`) to turn creator search into a guided execution step.
+
 ### Request Pipeline
 
-1. Backend fetches `brand_profile` and active `campaign` data — never trusts client to send this.
-2. Merges brand context + campaign goals + any user input into a prompt.
-3. Prompt is versioned (stored in `prompts/` directory with semver, e.g. `brief-v1.0.0`).
+1. Backend fetches required DB context (`brand_profile`, active `campaign`, and when needed `influencer_profile`, `influencer_stats`, `rate_cards`) — never trusts client-supplied profile data.
+2. Merges context + endpoint-specific user input into a tool-specific prompt.
+3. Prompt is versioned in `prompts/` with semver (for example `strategy-v1.0.0`, `brief-v1.0.0`, `fit-score-v1.0.0`, `content-brief-v1.0.0`).
 4. Sends to Gemini with instruction to return JSON only. No markdown, no preamble.
-5. Parses and validates response against a Zod schema.
-6. On parse failure → returns structured fallback, logs failure to `ai_outputs` table, emits Sentry event with `prompt_version` and raw response length (not raw content). Raw response discarded.
-7. On success → saves `brief_data` and `brief_preview` to `campaigns` table, writes row to `ai_outputs`, returns to client.
+5. Parses and validates response against the corresponding Zod schema.
+6. On parse failure -> returns structured fallback, logs failure metadata to `ai_outputs`, emits Sentry event with `prompt_version` and raw response length (not raw content). Raw response discarded.
+7. On success -> returns validated payload; persistence behavior depends on tool:
+  - `strategy`: may be attached to campaign planning metadata.
+  - `brief`: saves `brief_data` and `brief_preview` to `campaigns`.
+  - `fit_score`: derived on demand; not persisted as business data.
+  - `content_brief`: may be attached to campaign-influencer collaboration context.
+8. Every tool call writes one `ai_outputs` row with `ai_tool_type` and shared telemetry fields.
 
 ### AI Response Logging Policy
 
 Raw prompt content and raw AI response text are never stored in the database and never emitted to logs. The following metadata is stored in `ai_outputs` and emitted to structured logs:
 
 - `prompt_version`
+- `ai_tool_type`
 - `token_count`
 - `latency_ms`
 - `output_schema_valid`
@@ -728,7 +757,7 @@ Rows in `ai_outputs` are hard-deleted after 30 days. A cleanup query (`DELETE FR
 - Active prompt version is logged with every AI request.
 - Schema-breaking prompt change = major version bump.
 - Stub fixture must be updated to match new output shape before merge.
-- Admin can review AI output metadata via `GET /v1/admin/ai-outputs`.
+- Admin can review AI output metadata via `GET /v1/admin/ai-outputs`, including optional `tool_type` filtering.
 
 ### Budget Controls
 
@@ -749,6 +778,7 @@ Budget resets at midnight UTC. MVP uses in-memory counter. Swap `BudgetStore` im
 
 - Gemini call timeout: 10 seconds (enforced via `AbortController`).
 - On timeout → return `{ status: "degraded", message: "AI unavailable, try again shortly" }`. Campaign flow continues unblocked.
+- `fit_score` responses should be cached via `CacheStore` for 300 seconds with key `sha256(influencerId + campaignId)` and invalidated on ingest completion for that influencer.
 
 ---
 
@@ -770,7 +800,7 @@ Returns all influencer profiles with `verification_status = 'FLAGGED'`, joined w
 |---|---|
 | `POST /v1/admin/verify/:id` | Sets `is_verified = true`, `verification_status = 'APPROVED'`. Writes to `admin_audit_log`. Emits structured log. Sends approval email. |
 | `POST /v1/admin/reject/:id` | Sets `verification_status = 'REJECTED'`, stores `rejection_reason_code`. Writes to `admin_audit_log`. Emits structured log. Sends rejection email with reason. |
-| `GET /v1/admin/ai-outputs` | Lists recent `ai_outputs` rows. Metadata only — no raw content. |
+| `GET /v1/admin/ai-outputs` | Lists recent `ai_outputs` rows. Metadata only — no raw content. Supports optional `tool_type` filter. |
 | `GET /v1/admin/flags` | Lists all open `admin_flags` records. |
 | `POST /v1/admin/flags/:id/resolve` | Marks flag resolved. Writes to `admin_audit_log`. Emits structured log. |
 | `GET /v1/admin/audit-log` | Lists `admin_audit_log` rows. Filterable by `actor_id`, `target_type`, `action`. |
@@ -920,7 +950,7 @@ Sentry events must include structured context for all critical error classes. Us
 - Responses must pass Zod schema validation before being persisted or returned.
 - Raw responses logged to neither DB nor log files. Metadata only (see AI Response Logging Policy).
 
-### SendGrid / Postmark
+### Resend
 
 Transactional emails triggered by:
 
@@ -954,7 +984,7 @@ Emails are fire-and-forget (async). Failures are logged with recipient, template
 ### Stubs
 
 - Apify stub: returns fixture data for known handles; `handle_not_found` for unknown ones.
-- Gemini stub: returns a hardcoded valid JSON brief payload matching the current prompt version's schema.
+- Gemini stub: returns hardcoded valid JSON payloads for each tool type matching their current prompt version schemas.
 - Stubs live in `fixtures/`. Shape changes require a PR and a version bump.
 
 ### LockStore / CacheStore / BudgetStore in Tests
@@ -1026,20 +1056,23 @@ Exit criteria:
 - Caching active via `CacheStore` and verified (cache hit/miss logged).
 - Pagination contract tests pass.
 - Ownership enforcement tests pass (`assertBrandOwnership` helper used consistently).
+- Strategy-guided discovery flow supported: discovery filters can be pre-filled from `POST /v1/ai/strategy` output.
 - Influencer matched campaign feed returns truncated `brief_preview` only.
 - Collaboration state machine enforced (DECLINED is terminal per campaign).
 - Idempotency keys accepted on campaign create, collaboration invite, collaboration apply.
 
 ### Phase 5 — AI Co-Pilot
 
-Gemini integration, prompt versioning, brief generation, budget controls.
+Gemini integration, prompt versioning, campaign intelligence tools (`strategy`, `brief`, `fit_score`, `content_brief`), budget controls.
 
 Exit criteria:
-- AI endpoint returns valid structured payload.
+- All AI tool endpoints return valid structured payloads.
 - `brief_preview` (280 char truncation) generated alongside `brief_data`.
+- Strategy output includes recommended creator profile block for discovery prefill.
+- Fit score endpoint returns score + rationale and is cached through `CacheStore`.
 - Malformed responses never reach client.
 - Budget cap logic validated via `BudgetStore` mock.
-- Prompt version logged per request in `ai_outputs`.
+- Prompt version and `ai_tool_type` logged per request in `ai_outputs`.
 - Fallback response verified on timeout and parse failure.
 - AI schema regression tests pass in CI.
 - Raw AI content confirmed absent from all logs and DB rows.
@@ -1054,7 +1087,7 @@ Exit criteria:
 - Structured log emitted for every admin action.
 - `GET /v1/admin/audit-log` returns correct records.
 - Non-admin cannot access any `/v1/admin/*` endpoint.
-- `GET /v1/admin/ai-outputs` returns metadata only — no raw content.
+- `GET /v1/admin/ai-outputs` returns metadata only — no raw content — and supports `tool_type` filtering.
 - `ai_outputs` cleanup query tested against a seeded dataset with old rows.
 
 ### Phase 7 — Production Readiness
@@ -1100,6 +1133,7 @@ Exit criteria:
 | `last_resubmitted_at` | influencer_profiles | TIMESTAMPTZ | Enforces 24h resubmission cooldown. |
 | `brief_preview` | campaigns | TEXT | 280-char truncated brief shown to influencers before invite. |
 | `actor_id` | admin_audit_log | UUID FK | Admin who performed the action. Append-only. |
+| `ai_tool_type` | ai_outputs | TEXT | AI tool used for the run (`brief`, `strategy`, `fit_score`, `content_brief`). |
 | `prompt_version` | ai_outputs | TEXT | Tracks which prompt version generated each output. |
 | `output_schema_valid` | ai_outputs | BOOL | Schema validity rate tracked without storing raw content. |
 
@@ -1114,5 +1148,5 @@ These items were explicitly deferred and must be resolved before the relevant ph
 | Engagement anomaly threshold value | Data/Product | Phase 2 |
 | AI daily token budget cap per environment | Engineering | Phase 5 |
 | Apify daily spend cap per environment | Engineering | Phase 2 |
-| Email provider (SendGrid vs Postmark) | Engineering | Phase 2 |
+| Email provider (Resend) | Engineering | Phase 2 |
 | Redis swap trigger criteria (instance count, error rate) | Engineering | Phase 7 |
