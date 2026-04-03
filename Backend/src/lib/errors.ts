@@ -31,6 +31,10 @@ export const Errors = {
   // 400 Validation
   VALIDATION_ERROR: (message: string, field?: string) => 
     new AppError(400, 'VALIDATION_ERROR', message, field),
+
+  // 500 Internal
+  DATABASE_ERROR: (detail?: string) =>
+    new AppError(500, 'DATABASE_ERROR', detail ? `Database operation failed: ${detail}` : 'Database operation failed'),
   
   // 401 Authentication
   INVALID_TOKEN: () => 
@@ -53,6 +57,8 @@ export const Errors = {
     new AppError(404, 'NOT_FOUND', `${resource} not found`),
   
   // 409 Conflict
+  CONFLICT: (message: string) =>
+    new AppError(409, 'CONFLICT', message),
   HANDLE_DUPLICATE: () => 
     new AppError(409, 'HANDLE_DUPLICATE', 'Instagram handle already registered to another active user'),
   INGEST_IN_PROGRESS: () => 

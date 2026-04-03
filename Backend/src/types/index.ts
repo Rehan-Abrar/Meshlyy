@@ -35,6 +35,7 @@ export interface AuthContext {
   role: UserRole;
   brandId?: string;
   onboardingCompleted: boolean;
+  onboardingStep?: number;
   subscriptionTier?: SubscriptionTier;
   subscriptionStatus?: SubscriptionStatus;
 }
