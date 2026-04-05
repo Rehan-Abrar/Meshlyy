@@ -12,6 +12,11 @@ const testTokenMap: Record<string, { userId: string; role: UserRole; email: stri
     role: 'BRAND',
     email: 'brand.test@example.com',
   },
+  'mock-brand-token-2': {
+    userId: '10000000-0000-0000-0000-000000000002',
+    role: 'BRAND',
+    email: 'brand2.test@example.com',
+  },
   'mock-influencer-token': {
     userId: '20000000-0000-0000-0000-000000000001',
     role: 'INFLUENCER',
@@ -116,10 +121,24 @@ export async function loadAuthContext(req: Request, res: Response, next: NextFun
             id: testUser.userId,
             email: testUser.email,
             role: testUser.role,
-            onboarding_step: 0,
-            onboarding_completed: false,
+            onboarding_step: testUser.role === 'BRAND' ? 5 : 0,
+            onboarding_completed: testUser.role === 'BRAND',
             is_deleted: false,
           }, { onConflict: 'id' });
+          
+          // Auto-provision brand profile for test brand users
+          if (testUser.role === 'BRAND') {
+            await supabase.from('brand_profiles').upsert({
+              user_id: testUser.userId,
+              company_name: 'Test Brand Company',
+              website: 'https://test.example.com',
+              industry: 'Technology',
+              budget_range_min: 5000,
+              budget_range_max: 50000,
+              tone_voice: 'Professional',
+              is_deleted: false,
+            }, { onConflict: 'user_id' });
+          }
         }
       }
       
@@ -143,12 +162,40 @@ export async function loadAuthContext(req: Request, res: Response, next: NextFun
     
     // If BRAND, load brand_id
     if (user.role === 'BRAND') {
-      const { data: brandProfile } = await supabase
+      let { data: brandProfile } = await supabase
         .from('brand_profiles')
         .select('id')
         .eq('user_id', user.id)
         .eq('is_deleted', false)
         .single();
+
+      // In dev/test, make test brand tokens self-healing even when only the user row exists.
+      if (!brandProfile && testTokenMap[(req as any).supabaseToken]) {
+        const testToken = (req as any).supabaseToken;
+        const testUser = testTokenMap[testToken];
+
+        if (testUser?.role === 'BRAND' && testUser.userId === user.id) {
+          await supabase.from('brand_profiles').upsert({
+            user_id: testUser.userId,
+            company_name: 'Test Brand Company',
+            website: 'https://test.example.com',
+            industry: 'Technology',
+            budget_range_min: 5000,
+            budget_range_max: 50000,
+            tone_voice: 'Professional',
+            is_deleted: false,
+          }, { onConflict: 'user_id' });
+
+          const provisioned = await supabase
+            .from('brand_profiles')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('is_deleted', false)
+            .single();
+
+          brandProfile = provisioned.data ?? null;
+        }
+      }
       
       if (brandProfile) {
         authContext.brandId = brandProfile.id;

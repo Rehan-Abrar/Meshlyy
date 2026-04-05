@@ -22,6 +22,7 @@ const envSchema = z.object({
   
   // Gemini
   GEMINI_API_KEY: z.string().min(1),
+  GEMINI_MODEL: z.string().default('gemini-2.5-flash-lite'),
   
   // Apify
   APIFY_API_KEY: z.string().min(1),
@@ -37,7 +38,7 @@ const envSchema = z.object({
   // Timeouts
   REQUEST_TIMEOUT_MS: z.string().transform(Number).pipe(z.number().min(0)).default('5000'),
   APIFY_TIMEOUT_MS: z.string().transform(Number).pipe(z.number().min(0)).default('30000'),
-  GEMINI_TIMEOUT_MS: z.string().transform(Number).pipe(z.number().min(0)).default('10000'),
+  GEMINI_TIMEOUT_MS: z.string().transform(Number).pipe(z.number().min(0)).default('30000'),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

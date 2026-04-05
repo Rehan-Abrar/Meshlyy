@@ -10,7 +10,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:integration:phase2": "vitest run src/phase2-onboarding.integration.test.ts",
+    "test:integration:phase4": "vitest run src/phase4-integration.test.ts",
+    "verify-phase4": "tsx src/verify-phase4.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

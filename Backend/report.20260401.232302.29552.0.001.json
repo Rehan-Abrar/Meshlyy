@@ -1,0 +1,945 @@
+
+{
+  "header": {
+    "reportVersion": 5,
+    "event": "Allocation failed - JavaScript heap out of memory",
+    "trigger": "OOMError",
+    "filename": "report.20260401.232302.29552.0.001.json",
+    "dumpEventTime": "2026-04-01T23:23:02Z",
+    "dumpEventTimeStamp": "1775067782850",
+    "processId": 29552,
+    "threadId": 0,
+    "cwd": "D:\\Meshlyy\\Backend",
+    "commandLine": [
+      "C:\\Users\\rehan\\AppData\\Local\\GitHub CLI\\copilot\\copilot.exe",
+      "--no-warnings",
+      "--report-on-fatalerror",
+      "C:\\Users\\rehan\\AppData\\Local\\GitHub CLI\\copilot\\copilot.exe"
+    ],
+    "nodejsVersion": "v24.11.1",
+    "wordSize": 64,
+    "arch": "x64",
+    "platform": "win32",
+    "componentVersions": {
+      "acorn": "8.15.0",
+      "ada": "3.3.0",
+      "amaro": "1.1.4",
+      "ares": "1.34.5",
+      "brotli": "1.1.0",
+      "cjs_module_lexer": "2.1.0",
+      "cldr": "47.0",
+      "icu": "77.1",
+      "llhttp": "9.3.0",
+      "modules": "137",
+      "napi": "10",
+      "nbytes": "0.1.1",
+      "ncrypto": "0.0.1",
+      "nghttp2": "1.66.0",
+      "node": "24.11.1",
+      "openssl": "3.5.4",
+      "simdjson": "4.0.7",
+      "simdutf": "6.4.0",
+      "sqlite": "3.50.4",
+      "tz": "2025b",
+      "undici": "7.16.0",
+      "unicode": "16.0",
+      "uv": "1.51.0",
+      "uvwasi": "0.0.23",
+      "v8": "13.6.233.10-node.28",
+      "zlib": "1.3.1-470d3a2",
+      "zstd": "1.5.7"
+    },
+    "release": {
+      "name": "node",
+      "lts": "Krypton",
+      "headersUrl": "https://nodejs.org/download/release/v24.11.1/node-v24.11.1-headers.tar.gz",
+      "sourceUrl": "https://nodejs.org/download/release/v24.11.1/node-v24.11.1.tar.gz",
+      "libUrl": "https://nodejs.org/download/release/v24.11.1/win-x64/node.lib"
+    },
+    "osName": "Windows_NT",
+    "osRelease": "10.0.26200",
+    "osVersion": "Windows 11 Home Single Language",
+    "osMachine": "x86_64",
+    "cpus": [
+      {
+        "model": "13th Gen Intel(R) Core(TM) i5-13420H",
+        "speed": 2611,
+        "user": 30526406,
+        "nice": 0,
+        "sys": 43848046,
+        "idle": 504797203,
+        "irq": 7602421
+      },
+      {
+        "model": "13th Gen Intel(R) Core(TM) i5-13420H",
+        "speed": 2611,
+        "user": 21251781,
+        "nice": 0,
+        "sys": 20792203,
+        "idle": 537127546,
+        "irq": 2451375
+      },
+      {
+        "model": "13th Gen Intel(R) Core(TM) i5-13420H",
+        "speed": 2611,
+        "user": 36159718,
+        "nice": 0,
+        "sys": 34967437,
+        "idle": 508044406,
+        "irq": 4387531
+      },
+      {
+        "model": "13th Gen Intel(R) Core(TM) i5-13420H",
+        "speed": 2611,
+        "user": 22279281,
+        "nice": 0,
+        "sys": 20156968,
+        "idle": 536735312,
+        "irq": 2144921
+      },
+      {
+        "model": "13th Gen Intel(R) Core(TM) i5-13420H",
+        "speed": 2611,
+        "user": 28910250,
+        "nice": 0,
+        "sys": 26346296,
+        "idle": 523915015,
+        "irq": 3043531
+      },
+      {
+        "model": "13th Gen Intel(R) Core(TM) i5-13420H",
+        "speed": 2611,
+        "user": 19053000,
+        "nice": 0,
+        "sys": 14686468,
+        "idle": 545432093,
+        "irq": 1467375
+      },
+      {
+        "model": "13th Gen Intel(R) Core(TM) i5-13420H",
+        "speed": 2611,
+        "user": 29677484,
+        "nice": 0,
+        "sys": 23931921,
+        "idle": 525562156,
+        "irq": 2283406
+      },
+      {
+        "model": "13th Gen Intel(R) Core(TM) i5-13420H",
+        "speed": 2611,
+        "user": 19533843,
+        "nice": 0,
+        "sys": 14435812,
+        "idle": 545201875,
+        "irq": 1381093
+      },
+      {
+        "model": "13th Gen Intel(R) Core(TM) i5-13420H",
+        "speed": 2611,
+        "user": 14000750,
+        "nice": 0,
+        "sys": 13235000,
+        "idle": 551935781,
+        "irq": 1167828
+      },
+      {
+        "model": "13th Gen Intel(R) Core(TM) i5-13420H",
+        "speed": 2611,
+        "user": 15636265,
+        "nice": 0,
+        "sys": 14484156,
+        "idle": 549051109,
+        "irq": 1054640
+      },
+      {
+        "model": "13th Gen Intel(R) Core(TM) i5-13420H",
+        "speed": 2611,
+        "user": 16454578,
+        "nice": 0,
+        "sys": 15239437,
+        "idle": 547477515,
+        "irq": 1003343
+      },
+      {
+        "model": "13th Gen Intel(R) Core(TM) i5-13420H",
+        "speed": 2611,
+        "user": 17286687,
+        "nice": 0,
+        "sys": 16463218,
+        "idle": 545421625,
+        "irq": 1072906
+      }
+    ],
+    "networkInterfaces": [
+      {
+        "name": "Wi-Fi",
+        "internal": false,
+        "mac": "58:02:05:18:96:36",
+        "address": "fe80::80e3:98fa:f575:79c3",
+        "netmask": "ffff:ffff:ffff:ffff::",
+        "family": "IPv6",
+        "scopeid": 17
+      },
+      {
+        "name": "Wi-Fi",
+        "internal": false,
+        "mac": "58:02:05:18:96:36",
+        "address": "192.168.5.103",
+        "netmask": "255.255.255.0",
+        "family": "IPv4"
+      },
+      {
+        "name": "Loopback Pseudo-Interface 1",
+        "internal": true,
+        "mac": "00:00:00:00:00:00",
+        "address": "::1",
+        "netmask": "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+        "family": "IPv6",
+        "scopeid": 0
+      },
+      {
+        "name": "Loopback Pseudo-Interface 1",
+        "internal": true,
+        "mac": "00:00:00:00:00:00",
+        "address": "127.0.0.1",
+        "netmask": "255.0.0.0",
+        "family": "IPv4"
+      }
+    ],
+    "host": "Rehan"
+  },
+  "javascriptStack": {
+    "message": "No stack.",
+    "stack": [
+      "Unavailable."
+    ],
+    "errorProperties": {
+    }
+  },
+  "javascriptHeap": {
+    "totalMemory": 222752768,
+    "executableMemory": 7307264,
+    "totalCommittedMemory": 222752768,
+    "availableMemory": 4376185000,
+    "totalGlobalHandlesMemory": 725064,
+    "usedGlobalHandlesMemory": 227392,
+    "usedMemory": 185864520,
+    "memoryLimit": 4496293888,
+    "mallocedMemory": 6324296,
+    "externalMemory": 35249854,
+    "peakMallocedMemory": 11869248,
+    "nativeContextCount": 3,
+    "detachedContextCount": 0,
+    "doesZapGarbage": 0,
+    "heapSpaces": {
+      "read_only_space": {
+        "memorySize": 0,
+        "committedMemory": 0,
+        "capacity": 0,
+        "used": 0,
+        "available": 0
+      },
+      "new_space": {
+        "memorySize": 67108864,
+        "committedMemory": 67108864,
+        "capacity": 67104768,
+        "used": 32366824,
+        "available": 34737944
+      },
+      "old_space": {
+        "memorySize": 83124224,
+        "committedMemory": 83124224,
+        "capacity": 81849456,
+        "used": 81849376,
+        "available": 80
+      },
+      "code_space": {
+        "memorySize": 6291456,
+        "committedMemory": 6291456,
+        "capacity": 6290688,
+        "used": 5721792,
+        "available": 568896
+      },
+      "shared_space": {
+        "memorySize": 0,
+        "committedMemory": 0,
+        "capacity": 0,
+        "used": 0,
+        "available": 0
+      },
+      "trusted_space": {
+        "memorySize": 5533696,
+        "committedMemory": 5533696,
+        "capacity": 5515488,
+        "used": 5287392,
+        "available": 228096
+      },
+      "shared_trusted_space": {
+        "memorySize": 0,
+        "committedMemory": 0,
+        "capacity": 0,
+        "used": 0,
+        "available": 0
+      },
+      "new_large_object_space": {
+        "memorySize": 0,
+        "committedMemory": 0,
+        "capacity": 67108864,
+        "used": 0,
+        "available": 67108864
+      },
+      "large_object_space": {
+        "memorySize": 59482112,
+        "committedMemory": 59482112,
+        "capacity": 59434272,
+        "used": 59434272,
+        "available": 0
+      },
+      "code_large_object_space": {
+        "memorySize": 1015808,
+        "committedMemory": 1015808,
+        "capacity": 1011136,
+        "used": 1011136,
+        "available": 0
+      },
+      "shared_large_object_space": {
+        "memorySize": 0,
+        "committedMemory": 0,
+        "capacity": 0,
+        "used": 0,
+        "available": 0
+      },
+      "shared_trusted_large_object_space": {
+        "memorySize": 0,
+        "committedMemory": 0,
+        "capacity": 0,
+        "used": 0,
+        "available": 0
+      },
+      "trusted_large_object_space": {
+        "memorySize": 196608,
+        "committedMemory": 196608,
+        "capacity": 193728,
+        "used": 193728,
+        "available": 0
+      }
+    }
+  },
+  "nativeStack": [
+    {
+      "pc": "0x00007ff623d51427",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff623d4e6ac",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff623d533c8",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff623e19737",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff624a5da77",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff62485e327",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff6247f6d4b",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff62481f0ba",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff624860706",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff62485fd56",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff624870ce2",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff62487080b",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff625cd89ad",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff62485bdf0",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff62487667a",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff624882458",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff624899dfc",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff624899d95",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff62456cddb",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff62456c65d",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff62456d868",
+      "symbol": ""
+    },
+    {
+      "pc": "0x00007ff62445fbe7",
+      "symbol": ""
+    },
+    {
+      "pc": "0x000001e56def733a",
+      "symbol": ""
+    }
+  ],
+  "resourceUsage": {
+    "free_memory": 1916329984,
+    "total_memory": 16869351424,
+    "rss": 342695936,
+    "available_memory": 1916329984,
+    "userCpuSeconds": 8.828,
+    "kernelCpuSeconds": 1.343,
+    "cpuConsumptionPercent": 11.3011,
+    "userCpuConsumptionPercent": 9.80889,
+    "kernelCpuConsumptionPercent": 1.49222,
+    "maxRss": 364789760,
+    "pageFaults": {
+      "IORequired": 281442,
+      "IONotRequired": 0
+    },
+    "fsActivity": {
+      "reads": 327,
+      "writes": 24
+    }
+  },
+  "uvthreadResourceUsage": {
+    "userCpuSeconds": 6.625,
+    "kernelCpuSeconds": 1.031,
+    "cpuConsumptionPercent": 8.50667,
+    "userCpuConsumptionPercent": 7.36111,
+    "kernelCpuConsumptionPercent": 1.14556,
+    "fsActivity": {
+      "reads": 0,
+      "writes": 0
+    }
+  },
+  "libuv": [
+    {
+      "type": "async",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x000001e533d51e30"
+    },
+    {
+      "type": "async",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x00007ff628fd1218"
+    },
+    {
+      "type": "timer",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x000001e535870600",
+      "repeat": 0,
+      "firesInMsFromNow": 22,
+      "expired": false
+    },
+    {
+      "type": "check",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x000001e5358706a0"
+    },
+    {
+      "type": "idle",
+      "is_active": false,
+      "is_referenced": true,
+      "address": "0x000001e535870718"
+    },
+    {
+      "type": "prepare",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x000001e535870790"
+    },
+    {
+      "type": "check",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x000001e535870808"
+    },
+    {
+      "type": "async",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x000001e535870880"
+    },
+    {
+      "type": "tty",
+      "is_active": false,
+      "is_referenced": true,
+      "address": "0x000001e535885a90",
+      "width": 156,
+      "height": 47,
+      "writeQueueSize": 0,
+      "readable": false,
+      "writable": true
+    },
+    {
+      "type": "signal",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x000001e535863330",
+      "signum": 28,
+      "signal": "SIGWINCH"
+    },
+    {
+      "type": "tty",
+      "is_active": false,
+      "is_referenced": true,
+      "address": "0x000001e56e0beda0",
+      "width": 156,
+      "height": 47,
+      "writeQueueSize": 0,
+      "readable": false,
+      "writable": true
+    },
+    {
+      "type": "tty",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x000001e56e1ae530",
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": false
+    },
+    {
+      "type": "signal",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x000001e56ea23280",
+      "signum": 15,
+      "signal": "SIGTERM"
+    },
+    {
+      "type": "signal",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x000001e56ea22ab0",
+      "signum": 2,
+      "signal": "SIGINT"
+    },
+    {
+      "type": "signal",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x000001e56ea23f00",
+      "signum": 1,
+      "signal": "SIGHUP"
+    },
+    {
+      "type": "signal",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x000001e56ea23410",
+      "signum": 3,
+      "signal": "SIGQUIT"
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x000001e56e96e8a0",
+      "localEndpoint": {
+        "host": "Rehan",
+        "ip4": "192.168.5.103",
+        "port": 49699
+      },
+      "remoteEndpoint": {
+        "host": "lb-140-82-114-22-iad.github.com",
+        "ip4": "140.82.114.22",
+        "port": 443
+      },
+      "sendBufferSize": 65536,
+      "recvBufferSize": 65536,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "signal",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x000001e56ea22c40",
+      "signum": 22,
+      "signal": "SIGABRT"
+    },
+    {
+      "type": "fs_event",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x000001e56ea238c0",
+      "filename": "\\\\?\\C:\\Users\\rehan\\.copilot\\session-state\\361e6b69-1713-44c6-ae45-7f4277fd9ec9\\research"
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x000001e56e96dc40",
+      "localEndpoint": {
+        "host": "Rehan",
+        "ip4": "192.168.5.103",
+        "port": 49700
+      },
+      "remoteEndpoint": {
+        "host": "lb-140-82-114-22-iad.github.com",
+        "ip4": "140.82.114.22",
+        "port": 443
+      },
+      "sendBufferSize": 65536,
+      "recvBufferSize": 65536,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x000001e56e96f500",
+      "localEndpoint": {
+        "host": "Rehan",
+        "ip4": "192.168.5.103",
+        "port": 49701
+      },
+      "remoteEndpoint": {
+        "host": "lb-140-82-114-22-iad.github.com",
+        "ip4": "140.82.114.22",
+        "port": 443
+      },
+      "sendBufferSize": 65536,
+      "recvBufferSize": 65536,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "fs_event",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x000001e56ea22dd0",
+      "filename": "\\\\?\\C:\\Users\\rehan\\.copilot\\ide"
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x000001e56f891760",
+      "localEndpoint": {
+        "host": "Rehan",
+        "ip4": "192.168.5.103",
+        "port": 49703
+      },
+      "remoteEndpoint": {
+        "host": "lb-140-82-114-22-iad.github.com",
+        "ip4": "140.82.114.22",
+        "port": 443
+      },
+      "sendBufferSize": 65536,
+      "recvBufferSize": 65536,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x000001e56f8988d0",
+      "localEndpoint": {
+        "host": "Rehan",
+        "ip4": "192.168.5.103",
+        "port": 49704
+      },
+      "remoteEndpoint": {
+        "host": "lb-140-82-114-22-iad.github.com",
+        "ip4": "140.82.114.22",
+        "port": 443
+      },
+      "sendBufferSize": 65536,
+      "recvBufferSize": 65536,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x000001e56ed5c460",
+      "localEndpoint": {
+        "host": "Rehan",
+        "ip4": "192.168.5.103",
+        "port": 49706
+      },
+      "remoteEndpoint": {
+        "host": "cdn-185-199-108-133.github.com",
+        "ip4": "185.199.108.133",
+        "port": 443
+      },
+      "sendBufferSize": 65536,
+      "recvBufferSize": 65536,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x000001e56ed62550",
+      "localEndpoint": {
+        "host": "Rehan",
+        "ip4": "192.168.5.103",
+        "port": 49707
+      },
+      "remoteEndpoint": {
+        "host": "lb-140-82-114-22-iad.github.com",
+        "ip4": "140.82.114.22",
+        "port": 443
+      },
+      "sendBufferSize": 65536,
+      "recvBufferSize": 65536,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x000001e56f891130",
+      "localEndpoint": {
+        "host": "Rehan",
+        "ip4": "192.168.5.103",
+        "port": 57702
+      },
+      "remoteEndpoint": {
+        "host": "lb-140-82-112-22-iad.github.com",
+        "ip4": "140.82.112.22",
+        "port": 443
+      },
+      "sendBufferSize": 65536,
+      "recvBufferSize": 65536,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "pipe",
+      "is_active": false,
+      "is_referenced": true,
+      "address": "0x000001e56ea97420",
+      "localEndpoint": null,
+      "remoteEndpoint": "\\\\?\\pipe\\uv\\18446744073709551615-29552",
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "pipe",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x000001e56ea97730",
+      "localEndpoint": null,
+      "remoteEndpoint": "\\\\?\\pipe\\uv\\0-29552",
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "pipe",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x000001e56ea97a40",
+      "localEndpoint": null,
+      "remoteEndpoint": "\\\\?\\pipe\\uv\\1-29552",
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "process",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x000001e56e93e1b0",
+      "pid": 7388
+    },
+    {
+      "type": "pipe",
+      "is_active": false,
+      "is_referenced": true,
+      "address": "0x000001e56ea94010",
+      "localEndpoint": null,
+      "remoteEndpoint": "\\\\?\\pipe\\uv\\2-29552",
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "pipe",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x000001e56ea94320",
+      "localEndpoint": null,
+      "remoteEndpoint": "\\\\?\\pipe\\uv\\3-29552",
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "pipe",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x000001e56f39e5f0",
+      "localEndpoint": null,
+      "remoteEndpoint": "\\\\?\\pipe\\uv\\4-29552",
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "process",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x000001e56e93da30",
+      "pid": 3036
+    },
+    {
+      "type": "pipe",
+      "is_active": false,
+      "is_referenced": true,
+      "address": "0x000001e56f39d390",
+      "localEndpoint": null,
+      "remoteEndpoint": "\\\\?\\pipe\\uv\\5-29552",
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "pipe",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x000001e56f39ec10",
+      "localEndpoint": null,
+      "remoteEndpoint": "\\\\?\\pipe\\uv\\6-29552",
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "pipe",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x000001e56f39cd70",
+      "localEndpoint": null,
+      "remoteEndpoint": "\\\\?\\pipe\\uv\\7-29552",
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "process",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x000001e56e93f530",
+      "pid": 37040
+    },
+    {
+      "type": "loop",
+      "is_active": true,
+      "address": "0x00007ff629267d38",
+      "loopIdleTimeSeconds": 82.1159
+    }
+  ],
+  "workers": [
+  ],
+  "sharedObjects": [
+    "C:\\Users\\rehan\\AppData\\Local\\GitHub CLI\\copilot\\copilot.exe",
+    "C:\\Windows\\SYSTEM32\\ntdll.dll",
+    "C:\\Windows\\System32\\KERNEL32.DLL",
+    "C:\\Windows\\System32\\KERNELBASE.dll",
+    "C:\\Windows\\System32\\CRYPT32.dll",
+    "C:\\Windows\\System32\\ucrtbase.dll",
+    "C:\\Windows\\System32\\WS2_32.dll",
+    "C:\\Windows\\System32\\RPCRT4.dll",
+    "C:\\Windows\\System32\\USER32.dll",
+    "C:\\Windows\\System32\\win32u.dll",
+    "C:\\Windows\\System32\\GDI32.dll",
+    "C:\\Windows\\System32\\gdi32full.dll",
+    "C:\\Windows\\System32\\msvcp_win.dll",
+    "C:\\Windows\\System32\\ADVAPI32.dll",
+    "C:\\Windows\\System32\\msvcrt.dll",
+    "C:\\Windows\\System32\\sechost.dll",
+    "C:\\Windows\\System32\\SHELL32.dll",
+    "C:\\Windows\\SYSTEM32\\dbghelp.dll",
+    "C:\\Windows\\System32\\combase.dll",
+    "C:\\Windows\\System32\\wintypes.dll",
+    "C:\\Windows\\System32\\OLEAUT32.dll",
+    "C:\\Windows\\SYSTEM32\\USERENV.dll",
+    "C:\\Windows\\System32\\ole32.dll",
+    "C:\\Windows\\SYSTEM32\\IPHLPAPI.DLL",
+    "C:\\Windows\\SYSTEM32\\WINMM.dll",
+    "C:\\Windows\\SYSTEM32\\dbgcore.DLL",
+    "C:\\Windows\\SYSTEM32\\CRYPTBASE.DLL",
+    "C:\\Windows\\System32\\IMM32.DLL",
+    "C:\\Windows\\SYSTEM32\\powrprof.dll",
+    "C:\\Windows\\SYSTEM32\\UMPDC.dll",
+    "C:\\Windows\\system32\\uxtheme.dll",
+    "C:\\Windows\\system32\\mswsock.dll",
+    "C:\\Windows\\SYSTEM32\\CRYPTSP.dll",
+    "C:\\Windows\\system32\\rsaenh.dll",
+    "C:\\Windows\\System32\\bcryptPrimitives.dll",
+    "C:\\Windows\\SYSTEM32\\kernel.appcore.dll",
+    "C:\\Windows\\System32\\NSI.dll",
+    "C:\\Windows\\SYSTEM32\\dhcpcsvc6.DLL",
+    "C:\\Windows\\SYSTEM32\\dhcpcsvc.DLL",
+    "C:\\Windows\\SYSTEM32\\DNSAPI.dll",
+    "C:\\Windows\\system32\\napinsp.dll",
+    "C:\\Windows\\System32\\winrnr.dll",
+    "C:\\Windows\\system32\\nlansp_c.dll",
+    "C:\\Windows\\system32\\wshbth.dll",
+    "C:\\Windows\\SYSTEM32\\MSASN1.dll",
+    "\\\\?\\C:\\Users\\rehan\\AppData\\Local\\copilot\\pkg\\win32-x64\\1.0.14\\prebuilds\\win32-x64\\keytar.node",
+    "C:\\Windows\\System32\\rasadhlp.dll",
+    "C:\\Windows\\System32\\fwpuclnt.dll"
+  ]
+}

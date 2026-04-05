@@ -6,7 +6,14 @@ import config from '../config/env';
 import { sendError } from '../lib/errors';
 
 export function timeoutMiddleware() {
-  return timeout(config.REQUEST_TIMEOUT_MS);
+  return (req: Request, res: Response, next: NextFunction) => {
+    // AI routes need longer timeout to complete LLM calls.
+    const isAiRoute = req.path.startsWith('/v1/ai/');
+    const aiTimeoutMs = Math.max(config.GEMINI_TIMEOUT_MS + 5000, config.REQUEST_TIMEOUT_MS);
+    const requestTimeoutMs = isAiRoute ? aiTimeoutMs : config.REQUEST_TIMEOUT_MS;
+
+    return timeout(requestTimeoutMs)(req, res, next);
+  };
 }
 
 export function haltOnTimeout(req: Request, res: Response, next: NextFunction) {

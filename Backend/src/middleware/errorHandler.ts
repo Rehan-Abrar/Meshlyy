@@ -3,6 +3,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError, sendError } from '../lib/errors';
 import { logger } from './logging';
+import { ZodError } from 'zod';
 
 export function errorHandler(err: Error, req: Request, res: Response, next: NextFunction) {
   // Log error
@@ -13,6 +14,21 @@ export function errorHandler(err: Error, req: Request, res: Response, next: Next
     method: req.method,
     userId: req.authContext?.userId
   });
+  
+  // Handle Zod validation errors
+  if (err instanceof ZodError) {
+    const firstError = err.errors[0];
+    const field = firstError.path.join('.');
+    const message = firstError.message;
+    
+    return res.status(400).json({
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: field ? `${field}: ${message}` : message,
+        ...(field && { field })
+      }
+    });
+  }
   
   // Handle known AppError instances
   if (err instanceof AppError) {

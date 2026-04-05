@@ -1,8 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
-import { validateEnv } from '../config/env';
+import config from '../config/env';
 
-const env = validateEnv();
-
-export const supabaseAdmin = createClient(env.supabaseUrl, env.supabaseServiceRoleKey, {
-  auth: { persistSession: false }
-});
+export const supabaseAdmin = createClient(
+  config.SUPABASE_URL,
+  config.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
+);

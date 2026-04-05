@@ -1,38 +1,35 @@
-import nodemailer from 'nodemailer';
 import { Resend } from 'resend';
-import type { Env } from '../config/env';
+import config from '../config/env';
 
 export type SendEmailInput = {
   to: string | string[];
   subject: string;
   html: string;
   text?: string;
+  from?: string;
 };
 
-export async function sendTransactionalEmail(env: Env, input: SendEmailInput): Promise<void> {
-  if (env.emailProvider === 'gmail') {
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: env.gmailEmail,
-        pass: env.gmailPassword
-      }
-    });
+type LegacyEmailEnv = {
+  resendApiKey: string;
+  resendEmailFrom?: string;
+  emailFrom?: string;
+};
 
-    await transporter.sendMail({
-      from: env.emailFrom,
-      to: input.to,
-      subject: input.subject,
-      html: input.html,
-      text: input.text
-    });
+export async function sendTransactionalEmail(
+  envOrInput: LegacyEmailEnv | SendEmailInput,
+  maybeInput?: SendEmailInput
+): Promise<void> {
+  const legacyEnv = maybeInput ? (envOrInput as LegacyEmailEnv) : undefined;
+  const input = maybeInput ?? (envOrInput as SendEmailInput);
 
-    return;
-  }
-
-  const resend = new Resend(env.resendApiKey);
+  const resend = new Resend(legacyEnv?.resendApiKey ?? config.RESEND_API_KEY);
   const result = await resend.emails.send({
-    from: env.resendEmailFrom ?? env.emailFrom,
+    from:
+      input.from ??
+      legacyEnv?.resendEmailFrom ??
+      legacyEnv?.emailFrom ??
+      process.env.RESEND_EMAIL_FROM ??
+      'Meshly <onboarding@resend.dev>',
     to: input.to,
     subject: input.subject,
     html: input.html,

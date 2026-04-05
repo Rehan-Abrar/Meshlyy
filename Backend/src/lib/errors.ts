@@ -33,6 +33,10 @@ export const Errors = {
     new AppError(400, 'VALIDATION_ERROR', message, field),
 
   // 500 Internal
+  INTERNAL_ERROR: (message: string = 'An unexpected error occurred') =>
+    new AppError(500, 'INTERNAL_ERROR', message),
+
+  // 500 Internal
   DATABASE_ERROR: (detail?: string) =>
     new AppError(500, 'DATABASE_ERROR', detail ? `Database operation failed: ${detail}` : 'Database operation failed'),
   

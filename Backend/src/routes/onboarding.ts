@@ -128,18 +128,29 @@ router.post('/influencer/step3', checkRole('INFLUENCER'), async (req: Authentica
 
 /**
  * POST /v1/onboarding/influencer/step4
- * Step 4: Rate cards and complete onboarding
- * Triggers verification ingest job
+ * Step 4: Rate cards
  */
 router.post('/influencer/step4', checkRole('INFLUENCER'), async (req: AuthenticatedRequest, res, next) => {
   try {
     const data = InfluencerStep4Schema.parse(req.body);
-    await influencerService.submitStep4(req.auth!.userId, data);
+    const result = await influencerService.submitStep4(req.auth!.userId, data);
+    
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
 
-    const completionResult = await influencerService.completeOnboarding(req.auth!.userId);
+/**
+ * POST /v1/onboarding/influencer/complete
+ * Step 5: Complete onboarding and trigger verification
+ */
+router.post('/influencer/complete', checkRole('INFLUENCER'), async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const result = await influencerService.completeOnboarding(req.auth!.userId);
     
     // Trigger ingest job
-    const jobId = await ingestService.triggerIngest(completionResult.profileId, completionResult.igHandle);
+    const jobId = await ingestService.triggerIngest(result.profileId, result.igHandle);
     
     res.status(201).json({
       success: true,

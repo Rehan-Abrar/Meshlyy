@@ -7,6 +7,11 @@ import { errorHandler } from './middleware/errorHandler';
 import { verifyToken, loadAuthContext } from './middleware/auth';
 import healthRouter from './routes/health';
 import onboardingRouter from './routes/onboarding';
+import creatorsRouter from './routes/creators';
+import campaignRouter, { matchedCampaignsRouter } from './routes/campaigns';
+import shortlistRouter from './routes/shortlists';
+import collaborationRouter from './routes/collaborations';
+import aiRouter from './routes/ai';
 
 const app = express();
 
@@ -22,17 +27,24 @@ app.use(haltOnTimeout);
 // Health check (always public)
 app.use('/v1/health', healthRouter);
 
-// Protected stub route to verify auth middleware works
-app.get('/v1/creators', verifyToken, loadAuthContext, (req, res) => {
-  res.json({ message: 'ok' });
-});
-
 // Onboarding routes
 app.use('/v1/onboarding', onboardingRouter);
 
-// Routes will be added as phases progress
-// app.use('/v1/auth', authRouter);
-// etc.
+// Creator discovery and detail routes
+app.use('/v1/creators', creatorsRouter);
+
+// Campaign routes
+app.use('/v1/campaigns/matched', matchedCampaignsRouter); // Must come before /v1/campaigns
+app.use('/v1/campaigns', campaignRouter);
+
+// Shortlist routes
+app.use('/v1/shortlists', shortlistRouter);
+
+// Collaboration routes
+app.use('/v1/collaborations', collaborationRouter);
+
+// AI Co-Pilot routes
+app.use('/v1/ai', aiRouter);
 
 // 404 catch-all handler (must be before error handler)
 app.use((req, res) => {
