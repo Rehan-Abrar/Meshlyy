@@ -1,0 +1,233 @@
+/* ==========================================================
+   Meshlyy — Global Styles | The Neural Lattice Design System
+   ========================================================== */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* === SURFACE HIERARCHY (LIGHT MODE) === */
+  --color-background:               #F9F8FC;
+  --color-surface:                  #FFFFFF;
+  --color-surface-container-low:    #F4F2F7;
+  --color-surface-container:        #EAE5F0;
+  --color-surface-container-high:   #E0D9EB;
+  --color-surface-container-highest:#FFFFFF;
+
+  /* === PRIMARY PALETTE === */
+  --color-primary:        #8B5CF6;
+  --color-primary-dim:    #7C3AED;
+  --color-primary-strong: #6D28D9;
+  --color-primary-light:  #EDE9FE;
+  --color-primary-ultralight: #F5F3FF;
+
+  /* === SECONDARY === */
+  --color-secondary:           #A78BFA;
+  --color-secondary-container: #C4B5FD;
+
+  /* === ACCENT (Rose Gold) === */
+  --color-accent: #D9B38C;
+
+  /* === SEMANTIC === */
+  --color-success: #10B981;
+  --color-error:   #EF4444;
+
+  /* === TEXT === */
+  --color-on-surface:         #111827;
+  --color-on-surface-variant: #4B5563;
+  --color-on-surface-light:   #6B7280;
+
+  /* === EFFECTS === */
+  --ghost-border:   rgba(139, 92, 246, 0.1);
+  --glass-bg:       rgba(255, 255, 255, 0.85);
+  --glass-border:   rgba(139, 92, 246, 0.1);
+
+  /* === GRADIENTS === */
+  --gradient-primary: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%);
+  --gradient-accent:  linear-gradient(135deg, #D9B38C 0%, #e8c9a8 100%);
+  --gradient-glow:    radial-gradient(ellipse at 50% 0%, rgba(139,92,246,0.08) 0%, transparent 65%);
+
+  /* === SHADOWS === */
+  --shadow-ambient:    0 10px 30px rgba(0, 0, 0, 0.03);
+  --shadow-card:       0 4px 20px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 12px 32px rgba(139, 92, 246, 0.08);
+  --shadow-glow:       0 0 24px rgba(139, 92, 246, 0.15);
+  --shadow-btn:        0 4px 14px rgba(139, 92, 246, 0.25);
+  --shadow-btn-hover:  0 6px 20px rgba(139, 92, 246, 0.4);
+
+  /* === RADII === */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999px;
+
+  /* === SPACING === */
+  --space-xs:  0.5rem;
+  --space-sm:  1rem;
+  --space-md:  1.5rem;
+  --space-lg:  2rem;
+  --space-xl:  2.75rem;
+  --space-gap: 1.4rem;
+
+  /* === TYPOGRAPHY === */
+  --font-heading: 'Plus Jakarta Sans', sans-serif;
+  --font-body:    'Inter', sans-serif;
+
+  --text-hero:   3.5rem;
+  --text-h1:     1.75rem;
+  --text-h2:     1.375rem;
+  --text-body:   1rem;
+  --text-sm:     0.875rem;
+  --text-micro:  0.6875rem;
+
+  /* === TRANSITIONS === */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 400ms ease;
+}
+
+/* === BASE RESET === */
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-background);
+  color: var(--color-on-surface);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Atmospheric light background glow */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse at 20% 10%, rgba(139, 92, 246, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+}
+
+/* === TYPOGRAPHY BASE === */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--color-on-surface);
+}
+
+h1 { font-size: var(--text-hero); }
+h2 { font-size: var(--text-h1);   letter-spacing: -0.01em; }
+h3 { font-size: var(--text-h2);   }
+
+p {
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  color: var(--color-on-surface-variant);
+  line-height: 1.5;
+  max-width: 65ch;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+a:hover { color: var(--color-primary-strong); }
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input, textarea, select {
+  font-family: var(--font-body);
+}
+
+img, video {
+  max-width: 100%;
+  display: block;
+}
+
+ul, ol {
+  list-style: none;
+}
+
+/* === UTILITY CLASSES === */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.text-gradient {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+}
+
+.micro-label {
+  font-family: var(--font-body);
+  font-size: var(--text-micro);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+}
+
+/* === SCROLLBAR === */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-background); }
+::-webkit-scrollbar-thumb {
+  background: var(--color-surface-container-high);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--color-primary); }
+
+/* === SELECTION === */
+::selection {
+  background: rgba(139, 92, 246, 0.2);
+  color: var(--color-on-surface);
+}
+
+/* === FOCUS (Accessible) === */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}

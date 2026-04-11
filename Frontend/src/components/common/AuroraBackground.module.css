@@ -1,0 +1,75 @@
+@keyframes aurora {
+  from { background-position: 50% 50%, 50% 50%; }
+  to   { background-position: 350% 50%, 350% 50%; }
+}
+
+.wrapper {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+}
+
+/* The animated aurora layer */
+.aurora {
+  pointer-events: none;
+  position: absolute;
+  inset: -10px;
+  opacity: 0.35;
+  will-change: transform;
+  filter: blur(12px);
+  background-image:
+    repeating-linear-gradient(
+      100deg,
+      #110b1e 0%, #110b1e 7%,
+      transparent 10%, transparent 12%, #110b1e 16%
+    ),
+    repeating-linear-gradient(
+      100deg,
+      #6a37d4 10%,
+      #8455ef 15%,
+      #ae8dff 20%,
+      #ba9eff 25%,
+      #7c3aed 30%
+    );
+  background-size: 300%, 200%;
+  background-position: 50% 50%, 50% 50%;
+  animation: aurora 60s linear infinite;
+  z-index: 0;
+}
+
+.aurora::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(
+      100deg,
+      #110b1e 0%, #110b1e 7%,
+      transparent 10%, transparent 12%, #110b1e 16%
+    ),
+    repeating-linear-gradient(
+      100deg,
+      #6a37d4 10%,
+      #8455ef 15%,
+      #ae8dff 20%,
+      #ba9eff 25%,
+      #7c3aed 30%
+    );
+  background-size: 200%, 100%;
+  background-position: 50% 50%, 50% 50%;
+  animation: aurora 60s linear infinite;
+  background-attachment: fixed;
+  mix-blend-mode: difference;
+}
+
+/* Fade to transparent toward bottom-left — keeps text legible */
+.masked {
+  mask-image: radial-gradient(ellipse at 80% 0%, black 10%, transparent 65%);
+  -webkit-mask-image: radial-gradient(ellipse at 80% 0%, black 10%, transparent 65%);
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}

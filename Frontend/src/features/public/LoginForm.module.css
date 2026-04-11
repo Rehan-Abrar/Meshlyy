@@ -1,0 +1,73 @@
+.page {
+  min-height: calc(100vh - 4rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+}
+
+.card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--color-surface-container);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+.header {
+  text-align: center;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-on-surface);
+  margin-bottom: 0.25rem;
+}
+
+.subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-on-surface-variant);
+}
+
+.form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.errorBanner {
+  width: 100%;
+  background: rgba(255,110,132,0.1);
+  color: var(--color-error);
+  padding: 0.625rem 0.875rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-align: center;
+}
+
+.footer {
+  font-size: var(--text-sm);
+  color: var(--color-on-surface-variant);
+  text-align: center;
+}
+
+.link {
+  color: var(--color-primary);
+  font-weight: 600;
+}

@@ -1,0 +1,155 @@
+.page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.backLink {
+  font-size: var(--text-sm);
+  color: var(--color-on-surface-variant);
+  text-decoration: none;
+  font-weight: 500;
+}
+.backLink:hover { color: var(--color-primary); }
+
+.offerHeader {
+  background: var(--color-surface-container);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  display: flex;
+  gap: var(--space-xl);
+  align-items: flex-start;
+}
+
+.brandLogo {
+  flex-shrink: 0;
+  width: 56px; height: 56px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1rem;
+  color: #fff;
+}
+
+.brandName {
+  font-size: var(--text-sm);
+  color: var(--color-on-surface-variant);
+  margin-bottom: 0.125rem;
+}
+
+.campaignTitle {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: var(--color-on-surface);
+  letter-spacing: -0.02em;
+}
+
+.tags {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.budgetBlock {
+  margin-left: auto;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.budgetLabel {
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+}
+
+.budgetValue {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.deadline {
+  font-size: var(--text-sm);
+  color: var(--color-on-surface-variant);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-lg);
+}
+
+.card {
+  background: var(--color-surface-container);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.cardTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-on-surface);
+}
+
+.briefText {
+  font-size: var(--text-sm);
+  color: var(--color-on-surface-variant);
+  line-height: 1.7;
+}
+
+.deliverableList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.deliverableItem {
+  display: flex;
+  gap: 0.625rem;
+  font-size: var(--text-sm);
+  color: var(--color-on-surface-variant);
+}
+
+.deliverableCheck {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.timeline {
+  font-size: var(--text-sm);
+  color: var(--color-on-surface-variant);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--glass-border);
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.notFound {
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  align-items: flex-start;
+}
+
+@media (max-width: 640px) {
+  .grid { grid-template-columns: 1fr; }
+  .offerHeader { flex-direction: column; }
+  .budgetBlock { margin-left: 0; text-align: left; }
+}

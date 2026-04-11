@@ -1,0 +1,126 @@
+.sidebar {
+  width: 240px;
+  min-height: calc(100vh - 4rem);
+  background: var(--color-surface-container-low);
+  border-right: 1px solid var(--glass-border);
+  flex-shrink: 0;
+}
+
+.inner {
+  padding: var(--space-lg) var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: var(--space-lg);
+}
+
+/* User card */
+.userCard {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: var(--space-sm);
+  background: var(--color-surface-container);
+  border-radius: var(--radius-md);
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--gradient-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  overflow: hidden;
+}
+
+.userName {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: none;
+}
+
+.userRole {
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+/* Nav */
+.nav { flex: 1; }
+
+.navList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--color-on-surface-variant);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+
+.navItem:hover {
+  background: rgba(186, 158, 255, 0.08);
+  color: var(--color-on-surface);
+}
+
+.navItemActive {
+  background: rgba(186, 158, 255, 0.12);
+  color: var(--color-primary);
+}
+
+.navItemActive .navIndicator {
+  position: absolute;
+  right: 0;
+  top: 20%;
+  height: 60%;
+  width: 3px;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-full) 0 0 var(--radius-full);
+}
+
+.navIcon {
+  font-size: 1rem;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.navLabel { flex: 1; }
+
+/* Decorative nodes */
+.nodeDecor {
+  display: flex;
+  justify-content: center;
+  opacity: 0.6;
+  margin-top: auto;
+}
