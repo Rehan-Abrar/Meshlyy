@@ -36,9 +36,11 @@ const Header = ({ toggleSidebar }) => {
           {!user && !isAuthPage && (
             <>
               <Link to="/login" className={styles.navLink}>Log in</Link>
-              <Button variant="primary" size="sm" onClick={() => window.location.href = '/role-select'}>
-                Get Started
-              </Button>
+              <Link to="/role-select">
+                <Button variant="primary" size="sm">
+                  Get Started
+                </Button>
+              </Link>
             </>
           )}
           {user && (

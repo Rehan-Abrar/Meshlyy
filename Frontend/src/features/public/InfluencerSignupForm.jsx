@@ -107,24 +107,26 @@ const InfluencerSignupForm = () => {
           </div>
           <div className={styles.grid2}>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Full Name</label>
+              <label className={styles.fieldLabel}>Full Name <span style={{color: 'var(--color-primary)'}}>*</span></label>
               <input
                 type="text"
                 className={styles.input}
                 placeholder="Ex. Rehan Abrar"
                 value={formData.fullName}
                 onChange={(e) => handleChange('fullName', e.target.value)}
+                required
               />
               {errors.fullName && <span className={styles.fieldError}>{errors.fullName}</span>}
             </div>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Email Address</label>
+              <label className={styles.fieldLabel}>Email Address <span style={{color: 'var(--color-primary)'}}>*</span></label>
               <input
                 type="email"
                 className={styles.input}
                 placeholder="name@example.com"
                 value={formData.email}
                 onChange={(e) => handleChange('email', e.target.value)}
+                required
               />
               {errors.email && <span className={styles.fieldError}>{errors.email}</span>}
             </div>
@@ -132,13 +134,14 @@ const InfluencerSignupForm = () => {
           
           <div className={styles.grid2} style={{ marginTop: '1.5rem' }}>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Password</label>
+              <label className={styles.fieldLabel}>Password <span style={{color: 'var(--color-primary)'}}>*</span></label>
               <input
                 type="password"
                 className={styles.input}
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={(e) => handleChange('password', e.target.value)}
+                required
               />
               {errors.password && <span className={styles.fieldError}>{errors.password}</span>}
             </div>
@@ -155,12 +158,13 @@ const InfluencerSignupForm = () => {
           </div>
 
           <div className={styles.fieldGroup} style={{ marginTop: '1.5rem' }}>
-            <label className={styles.fieldLabel}>Identity / Gender Representation</label>
+            <label className={styles.fieldLabel}>Identity / Gender Representation <span style={{color: 'var(--color-primary)'}}>*</span></label>
             <Select
               options={GENDERS}
               value={formData.gender}
               onChange={(e) => handleChange('gender', e.target.value)}
               placeholder="Select Identity"
+              required
             />
           </div>
         </section>
@@ -176,7 +180,7 @@ const InfluencerSignupForm = () => {
              <div className={styles.uploadBox} style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--color-primary-variant)'}}></div>
                 <div>
-                   <div className={styles.uploadText} style={{ textAlign: 'left' }}>Upload Profile Picture</div>
+                   <div className={styles.uploadText} style={{ textAlign: 'left' }}>Upload Profile Picture <span style={{color: 'var(--color-primary)'}}>*</span></div>
                    <div className={styles.uploadSub}>Show brands who you are</div>
                 </div>
              </div>
@@ -184,33 +188,36 @@ const InfluencerSignupForm = () => {
 
           <div className={styles.grid2}>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Primary Platform</label>
+              <label className={styles.fieldLabel}>Primary Platform <span style={{color: 'var(--color-primary)'}}>*</span></label>
               <Select
                 options={PLATFORMS}
                 value={formData.platform}
                 onChange={(e) => handleChange('platform', e.target.value)}
                 placeholder="Select Platform"
+                required
               />
             </div>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Handle / Username</label>
+              <label className={styles.fieldLabel}>Handle / Username <span style={{color: 'var(--color-primary)'}}>*</span></label>
               <input
                 type="text"
                 className={styles.input}
                 placeholder="@username"
                 value={formData.handle}
                 onChange={(e) => handleChange('handle', e.target.value)}
+                required
               />
               {errors.handle && <span className={styles.fieldError}>{errors.handle}</span>}
             </div>
           </div>
           <div className={styles.fieldGroup} style={{ marginTop: '1.5rem' }}>
-            <label className={styles.fieldLabel}>Profile Bio / Description</label>
+            <label className={styles.fieldLabel}>Profile Bio / Description <span style={{color: 'var(--color-primary)'}}>*</span></label>
             <textarea
               className={styles.textarea}
               placeholder="Tell brands about your content style, values, and what makes your channel unique..."
               value={formData.bio}
               onChange={(e) => handleChange('bio', e.target.value)}
+              required
             />
           </div>
         </section>
@@ -223,29 +230,31 @@ const InfluencerSignupForm = () => {
           </div>
           <div className={styles.grid2}>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Core Content Niche</label>
+              <label className={styles.fieldLabel}>Core Content Niche <span style={{color: 'var(--color-primary)'}}>*</span></label>
               <Select
                 options={CREATOR_NICHES}
                 value={formData.niche}
                 onChange={(e) => handleChange('niche', e.target.value)}
                 placeholder="Select Niche"
+                required
               />
               {errors.niche && <span className={styles.fieldError}>{errors.niche}</span>}
             </div>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Estimated Reach / Followers</label>
+              <label className={styles.fieldLabel}>Estimated Reach / Followers <span style={{color: 'var(--color-primary)'}}>*</span></label>
               <Select
                 options={AUDIENCE_SIZES}
                 value={formData.audience}
                 onChange={(e) => handleChange('audience', e.target.value)}
                 placeholder="Approximate Reach"
+                required
               />
               {errors.audience && <span className={styles.fieldError}>{errors.audience}</span>}
             </div>
           </div>
           <div style={{ marginTop: '2rem' }}>
              <div className={styles.uploadBox}>
-                <div className={styles.uploadText}>Upload Media Kit or Portfolio (Required for verification)</div>
+                <div className={styles.uploadText}>Upload Media Kit or Portfolio (Required for verification) <span style={{color: 'var(--color-primary)'}}>*</span></div>
                 <div className={styles.uploadSub}>PDF or Link to Deck</div>
              </div>
           </div>

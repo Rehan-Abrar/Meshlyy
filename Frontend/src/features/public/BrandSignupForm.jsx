@@ -21,9 +21,11 @@ const AUDIENCE_LOCATIONS = ['National (Pakistan)', 'Provincial', 'Regional', 'Gl
 const PAK_PROVINCES = ['Punjab', 'Sindh', 'Khyber Pakhtunkhwa', 'Balochistan', 'Gilgit-Baltistan', 'AJK', 'ICT'];
 
 // Field component to keep code clean
-const Field = ({ id, label, children }) => (
+const Field = ({ id, label, children, required }) => (
   <div className={styles.fieldGroup}>
-    <label htmlFor={id} className={styles.fieldLabel}>{label}</label>
+    <label htmlFor={id} className={styles.fieldLabel}>
+      {label} {required && <span style={{color: 'var(--color-primary)'}}>*</span>}
+    </label>
     {children}
   </div>
 );
@@ -66,6 +68,13 @@ const BrandSignupForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Strict Validation Check
+    if (!form.fullName || !form.workEmail || !form.password || !form.confirmPassword || !form.brandName || !form.industry) {
+      alert('Please fill out all required fields marked with an asterisk (*).');
+      return;
+    }
+    
     if (!form.agreedTerms || !form.agreedConsent) {
       alert('You must agree to the Terms and Consent.');
       return;
@@ -101,19 +110,19 @@ const BrandSignupForm = () => {
             <h2 className={styles.sectionTitle}>Basic Account Info</h2>
           </div>
           <div className={styles.grid2}>
-            <Field id="fullName" label="Full Name">
+            <Field id="fullName" label="Full Name" required>
               <input type="text" id="fullName" name="fullName" className={styles.input} placeholder="John Doe" value={form.fullName} onChange={handleChange} required />
             </Field>
-            <Field id="workEmail" label="Work Email">
+            <Field id="workEmail" label="Work Email" required>
               <input type="email" id="workEmail" name="workEmail" className={styles.input} placeholder="john@brand.com" value={form.workEmail} onChange={handleChange} required />
             </Field>
             <Field id="phone" label="Phone">
               <input type="tel" id="phone" name="phone" className={styles.input} placeholder="+1 (000) 000-0000" value={form.phone} onChange={handleChange} />
             </Field>
-            <Field id="password" label="Password">
+            <Field id="password" label="Password" required>
               <input type="password" id="password" name="password" className={styles.input} placeholder="••••••••" value={form.password} onChange={handleChange} required />
             </Field>
-            <Field id="confirmPassword" label="Confirm Password">
+            <Field id="confirmPassword" label="Confirm Password" required>
               <input type="password" id="confirmPassword" name="confirmPassword" className={styles.input} placeholder="••••••••" value={form.confirmPassword} onChange={handleChange} required />
             </Field>
           </div>
@@ -134,7 +143,7 @@ const BrandSignupForm = () => {
             <h2 className={styles.sectionTitle}>Brand & Business Details</h2>
           </div>
           <div className={styles.grid2}>
-            <Field id="brandName" label="Brand Name">
+            <Field id="brandName" label="Brand Name" required>
               <input type="text" id="brandName" name="brandName" className={styles.input} placeholder="Meshlyy Retail" value={form.brandName} onChange={handleChange} required />
             </Field>
             <Field id="companyName" label="Company Name">
@@ -143,8 +152,8 @@ const BrandSignupForm = () => {
             <Field id="businessType" label="Business Type">
               <Select id="businessType" name="businessType" options={['B2C', 'B2B', 'DTC']} value={form.businessType} onChange={handleChange} placeholder="Select Type..." />
             </Field>
-            <Field id="industry" label="Industry">
-              <Select id="industry" name="industry" options={BRAND_INDUSTRIES} value={form.industry} onChange={handleChange} placeholder="Select Industry..." />
+            <Field id="industry" label="Industry" required>
+              <Select id="industry" name="industry" options={BRAND_INDUSTRIES} value={form.industry} onChange={handleChange} placeholder="Select Industry..." required />
             </Field>
             <Field id="website" label="Website">
               <input type="url" id="website" name="website" className={styles.input} placeholder="https://meshlyy.com" value={form.website} onChange={handleChange} />
@@ -164,7 +173,7 @@ const BrandSignupForm = () => {
             <textarea name="about" className={styles.textarea} placeholder="Tell us about your brand mission..." value={form.about} onChange={handleChange} />
           </div>
           <div className={`${styles.fieldGroup} ${styles.mt-4}`}>
-            <label className={styles.fieldLabel}>Brand Logo</label>
+            <label className={styles.fieldLabel}>Brand Logo <span style={{color: 'var(--color-primary)'}}>*</span></label>
             <div className={styles.uploadBox}>
               <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem', opacity: 0.5 }}>+</div>
               <div className={styles.uploadText}>Click to upload or drag and drop</div>
