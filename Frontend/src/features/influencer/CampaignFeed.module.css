@@ -1,0 +1,109 @@
+.page {
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  max-width: 860px;
+}
+
+.header { display: flex; align-items: flex-start; justify-content: space-between; }
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--color-on-surface);
+}
+
+.sub {
+  font-size: var(--text-sm);
+  color: var(--color-on-surface-variant);
+  margin-top: 0.25rem;
+  max-width: none;
+}
+
+/* Feed */
+.feed { border-radius: var(--radius-lg); overflow: hidden; }
+
+.offerItem {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  transition: background var(--transition-fast);
+}
+.offerItem:hover { background: rgba(186,158,255,0.04); }
+
+.offerLogo {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: rgba(186,158,255,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.offerInfo { flex: 1; display: flex; flex-direction: column; gap: 0.375rem; }
+
+.offerTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.offerCampaign {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-on-surface);
+  letter-spacing: -0.01em;
+}
+
+.offerBrand {
+  font-size: var(--text-sm);
+  color: var(--color-on-surface-variant);
+  display: block;
+}
+
+.offerMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.offerBudget {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-success);
+}
+
+.offerBrief {
+  font-size: var(--text-sm);
+  color: var(--color-on-surface-variant);
+  line-height: 1.55;
+  max-width: 60ch;
+}
+
+.offerBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.125rem;
+}
+
+.offerDeadline {
+  font-size: var(--text-micro);
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--color-on-surface-variant);
+}
+
+.divider { height: 1px; background: var(--glass-border); margin: 0 var(--space-md); }

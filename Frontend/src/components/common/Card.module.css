@@ -1,0 +1,85 @@
+.card {
+  border-radius: var(--radius-md);
+  position: relative;
+  transition:
+    box-shadow var(--transition-base),
+    transform var(--transition-base),
+    background var(--transition-base);
+}
+
+/* === STANDARD CARD === */
+.card--standard {
+  background: var(--color-surface-container-highest);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-card);
+}
+.card--standard:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* === CONTAINER CARD (grouping) === */
+.card--container {
+  background: var(--color-surface-container-low);
+  padding: var(--space-lg);
+}
+
+/* === GLASS CARD === */
+.card--glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-card);
+}
+.card--glass:hover {
+  box-shadow: var(--shadow-card-hover), var(--shadow-glow);
+  border-color: rgba(186, 158, 255, 0.2);
+}
+
+/* === PREMIUM CARD === */
+.card--premium {
+  background: var(--color-surface-container-highest);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-card), 0 0 0 1px rgba(217, 179, 140, 0.2);
+}
+.card--premium:hover {
+  box-shadow: var(--shadow-card-hover), 0 0 20px rgba(217, 179, 140, 0.15);
+}
+
+/* === CLICKABLE === */
+.card--clickable {
+  cursor: pointer;
+  user-select: none;
+}
+.card--clickable:hover {
+  transform: translateY(-2px);
+}
+.card--clickable:active {
+  transform: translateY(0);
+}
+
+/* === NO PADDING === */
+.card--no-pad {
+  padding: 0;
+}
+
+/* === BADGE (absolute top-right) === */
+.badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: var(--gradient-accent);
+  color: #fff;
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-full);
+}
+
+/* === HOVER GLOW (for creator cards) === */
+.card--glow:hover {
+  box-shadow: var(--shadow-card-hover), 0 0 24px rgba(186, 158, 255, 0.15);
+}

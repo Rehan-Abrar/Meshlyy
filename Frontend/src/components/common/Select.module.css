@@ -1,0 +1,115 @@
+.container {
+  position: relative;
+  width: 100%;
+  font-family: var(--font-body);
+}
+
+.trigger {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--color-surface-container-low);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  color: var(--color-on-surface);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.trigger:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+  background: var(--color-surface-container);
+}
+
+.triggerActive {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+  background: var(--color-surface);
+}
+
+.triggerPlaceholder {
+  color: var(--color-on-surface-variant);
+}
+
+.displayValue {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 1rem;
+}
+
+.chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-on-surface-variant);
+  transition: transform var(--transition-base);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+  color: var(--color-primary);
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-cardHover);
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 100;
+  list-style: none;
+  padding: 0.5rem;
+  margin: 0;
+  
+  /* Glassmorphism */
+  backdrop-filter: var(--glass-backdropBlur);
+  
+  /* Scrollbar override for webkit */
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-surface-container-high) transparent;
+}
+
+.dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dropdown::-webkit-scrollbar-thumb {
+  background-color: var(--color-surface-container-high);
+  border-radius: var(--radius-full);
+}
+
+.option {
+  padding: 0.625rem 0.875rem;
+  font-size: 0.9375rem;
+  color: var(--color-on-surface);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.option:hover {
+  background: rgba(139, 92, 246, 0.08);
+  color: var(--color-primary-strong, var(--color-on-surface));
+}
+
+.optionSelected {
+  background: rgba(139, 92, 246, 0.12);
+  color: var(--color-primary);
+  font-weight: 500;
+}
