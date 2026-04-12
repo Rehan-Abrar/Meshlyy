@@ -1,0 +1,204 @@
+.page {
+  min-height: calc(100vh - 4rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4rem var(--space-xl);
+  font-family: 'Inter', sans-serif;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 3rem;
+  max-width: 600px;
+}
+
+.logo {
+  height: 80px;
+  width: auto;
+  display: block;
+  margin: 0 auto 2rem auto;
+}
+
+.title {
+  font-size: 2.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--color-on-surface);
+  margin-bottom: 1rem;
+}
+
+.subtitle {
+  font-size: 1.125rem;
+  color: var(--color-on-surface-variant);
+  line-height: 1.5;
+}
+
+.formContainer {
+  width: 100%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.sectionCard {
+  background: var(--color-surface-container);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  padding: 2.5rem;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.sectionIcon {
+  width: 32px;
+  height: 32px;
+  background: rgba(186,158,255,0.1);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #BA9EFF;
+  font-size: 1.25rem;
+}
+
+.sectionTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-on-surface);
+  letter-spacing: -0.01em;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fieldLabel {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.input, .select, .textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  color: var(--color-on-surface);
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.input:focus, .select:focus, .textarea:focus {
+  outline: none;
+  border-color: #BA9EFF;
+  box-shadow: 0 0 0 3px rgba(186,158,255,0.15);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.uploadBox {
+  border: 2px dashed var(--glass-border);
+  border-radius: 8px;
+  padding: 2.5rem;
+  text-align: center;
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.uploadBox:hover {
+  border-color: #BA9EFF;
+  background: rgba(186,158,255,0.05);
+}
+
+.uploadText {
+  color: var(--color-on-surface-variant);
+  font-size: 0.9rem;
+}
+
+.uploadSub {
+  font-size: 0.75rem;
+  color: var(--color-on-surface-variant);
+  margin-top: 0.5rem;
+  opacity: 0.7;
+}
+
+.pillGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.pill {
+  padding: 0.5rem 1.25rem;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: var(--color-surface);
+  color: var(--color-on-surface-variant);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pill.active {
+  background: #BA9EFF;
+  color: #fff;
+  border-color: #BA9EFF;
+}
+
+.submitBtn {
+  background: var(--gradient-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 1.25rem;
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+  margin-top: 1rem;
+}
+
+.submitBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+}
+
+.footerNote {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--color-on-surface-variant);
+  margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+  .grid2 { grid-template-columns: 1fr; }
+  .sectionCard { padding: 1.5rem; }
+  .title { font-size: 1.75rem; }
+}
