@@ -16,6 +16,7 @@
   inset: -10px;
   opacity: 0.35;
   will-change: transform;
+  transform: translateZ(0); /* Hardware acceleration */
   filter: blur(12px);
   background-image:
     repeating-linear-gradient(
@@ -72,4 +73,14 @@
   position: relative;
   z-index: 1;
   width: 100%;
+}
+
+@media (max-width: 768px) {
+  .aurora {
+    filter: blur(6px);
+    animation: aurora 120s linear infinite; /* Slower animation to save CPU */
+  }
+  .aurora::after {
+    animation: aurora 120s linear infinite;
+  }
 }

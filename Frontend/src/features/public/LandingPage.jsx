@@ -1,4 +1,4 @@
-import { Link, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import AuroraBackground from '../../components/common/AuroraBackground';
 import Button from '../../components/common/Button';
@@ -40,6 +40,7 @@ const ChartIcon = () => (
 
 const LandingPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   // Do not show landing page to logged in users
   if (user) {
@@ -66,12 +67,12 @@ const LandingPage = () => {
               that drive real results.
             </p>
             <div className={styles.heroCTA}>
-              <Link to="/role-select">
-                <Button variant="primary" size="lg">Get Started Free</Button>
-              </Link>
-              <Link to="/login">
-                <Button variant="secondary" size="lg">Login</Button>
-              </Link>
+              <Button variant="primary" size="lg" onClick={() => navigate('/role-select')}>
+                Get Started Free
+              </Button>
+              <Button variant="secondary" size="lg" onClick={() => navigate('/login')}>
+                Login
+              </Button>
             </div>
             <div className={styles.stats}>
               <StatPill number="12K+" label="Creators" />
@@ -123,9 +124,9 @@ const LandingPage = () => {
             Join thousands of brands and creators already using Meshlyy to build
             authentic, high-performing partnerships.
           </p>
-          <Link to="/role-select">
-            <Button variant="primary" size="lg">Start Matching Now</Button>
-          </Link>
+          <Button variant="primary" size="lg" onClick={() => navigate('/role-select')}>
+            Start Matching Now
+          </Button>
         </div>
       </section>
     </div>

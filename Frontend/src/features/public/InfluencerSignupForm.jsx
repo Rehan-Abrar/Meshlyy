@@ -20,6 +20,8 @@ const AUDIENCE_SIZES = [
 ];
 
 const PLATFORMS = ['Instagram', 'TikTok', 'YouTube', 'Twitter / X', 'LinkedIn'];
+const GENDERS = ['Female', 'Male', 'Non-Binary', 'Prefer not to say'];
+const CONTENT_TYPES = ['User Generated Content (UGC)', 'Sponsored Posts', 'Brand Ambassadorship', 'Affiliate Marketing', 'Product Reviews'];
 
 const InfluencerSignupForm = () => {
   const navigate = useNavigate();
@@ -31,11 +33,15 @@ const InfluencerSignupForm = () => {
     fullName: '',
     email: '',
     password: '',
+    gender: '',
+    location: '',
     handle: '',
     platform: 'Instagram',
+    bio: '',
     niche: '',
     audience: '',
-    bio: '',
+    contentTypes: '',
+    verifiedConsent: false,
   });
 
   const handleChange = (field, value) => {
@@ -51,6 +57,7 @@ const InfluencerSignupForm = () => {
     if (!formData.handle) newErrors.handle = 'Social handle is required';
     if (!formData.niche) newErrors.niche = 'Niche is required';
     if (!formData.audience) newErrors.audience = 'Audience size is required';
+    if (!formData.verifiedConsent) newErrors.verifiedConsent = 'Please agree to the terms';
     return newErrors;
   };
 
@@ -64,7 +71,7 @@ const InfluencerSignupForm = () => {
     }
 
     setLoading(true);
-    // Mock signup logic
+    // Submit all data cleanly, ready for backend integration
     const result = await login({
       ...formData,
       role: 'influencer',
@@ -96,7 +103,7 @@ const InfluencerSignupForm = () => {
         <section className={styles.sectionCard}>
           <div className={styles.sectionHeader}>
             <div className={styles.sectionIcon}>01</div>
-            <h2 className={styles.sectionTitle}>Profile Information</h2>
+            <h2 className={styles.sectionTitle}>Basic Information</h2>
           </div>
           <div className={styles.grid2}>
             <div className={styles.fieldGroup}>
@@ -122,16 +129,39 @@ const InfluencerSignupForm = () => {
               {errors.email && <span className={styles.fieldError}>{errors.email}</span>}
             </div>
           </div>
+          
+          <div className={styles.grid2} style={{ marginTop: '1.5rem' }}>
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Password</label>
+              <input
+                type="password"
+                className={styles.input}
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={(e) => handleChange('password', e.target.value)}
+              />
+              {errors.password && <span className={styles.fieldError}>{errors.password}</span>}
+            </div>
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Top Location (City, Country)</label>
+              <input
+                type="text"
+                className={styles.input}
+                placeholder="Ex. Lahore, Pakistan"
+                value={formData.location}
+                onChange={(e) => handleChange('location', e.target.value)}
+              />
+            </div>
+          </div>
+
           <div className={styles.fieldGroup} style={{ marginTop: '1.5rem' }}>
-            <label className={styles.fieldLabel}>Password</label>
-            <input
-              type="password"
-              className={styles.input}
-              placeholder="••••••••"
-              value={formData.password}
-              onChange={(e) => handleChange('password', e.target.value)}
+            <label className={styles.fieldLabel}>Identity / Gender Representation</label>
+            <Select
+              options={GENDERS}
+              value={formData.gender}
+              onChange={(e) => handleChange('gender', e.target.value)}
+              placeholder="Select Identity"
             />
-            {errors.password && <span className={styles.fieldError}>{errors.password}</span>}
           </div>
         </section>
 
@@ -139,8 +169,19 @@ const InfluencerSignupForm = () => {
         <section className={styles.sectionCard}>
           <div className={styles.sectionHeader}>
             <div className={styles.sectionIcon}>02</div>
-            <h2 className={styles.sectionTitle}>Platform Connection</h2>
+            <h2 className={styles.sectionTitle}>Creator Identity</h2>
           </div>
+          
+          <div style={{ marginBottom: '1.5rem' }}>
+             <div className={styles.uploadBox} style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--color-primary-variant)'}}></div>
+                <div>
+                   <div className={styles.uploadText} style={{ textAlign: 'left' }}>Upload Profile Picture</div>
+                   <div className={styles.uploadSub}>Show brands who you are</div>
+                </div>
+             </div>
+          </div>
+
           <div className={styles.grid2}>
             <div className={styles.fieldGroup}>
               <label className={styles.fieldLabel}>Primary Platform</label>
@@ -167,7 +208,7 @@ const InfluencerSignupForm = () => {
             <label className={styles.fieldLabel}>Profile Bio / Description</label>
             <textarea
               className={styles.textarea}
-              placeholder="Tell brands about your content style and audience..."
+              placeholder="Tell brands about your content style, values, and what makes your channel unique..."
               value={formData.bio}
               onChange={(e) => handleChange('bio', e.target.value)}
             />
@@ -178,11 +219,11 @@ const InfluencerSignupForm = () => {
         <section className={styles.sectionCard}>
           <div className={styles.sectionHeader}>
             <div className={styles.sectionIcon}>03</div>
-            <h2 className={styles.sectionTitle}>Content & Audience</h2>
+            <h2 className={styles.sectionTitle}>Audience Insights</h2>
           </div>
           <div className={styles.grid2}>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Content Niche</label>
+              <label className={styles.fieldLabel}>Core Content Niche</label>
               <Select
                 options={CREATOR_NICHES}
                 value={formData.niche}
@@ -192,7 +233,7 @@ const InfluencerSignupForm = () => {
               {errors.niche && <span className={styles.fieldError}>{errors.niche}</span>}
             </div>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Total Reach</label>
+              <label className={styles.fieldLabel}>Estimated Reach / Followers</label>
               <Select
                 options={AUDIENCE_SIZES}
                 value={formData.audience}
@@ -204,20 +245,47 @@ const InfluencerSignupForm = () => {
           </div>
           <div style={{ marginTop: '2rem' }}>
              <div className={styles.uploadBox}>
-                <div className={styles.uploadText}>Upload Media Kit (Optional)</div>
-                <div className={styles.uploadSub}>PDF or JPG, Max 10MB</div>
+                <div className={styles.uploadText}>Upload Media Kit or Portfolio (Required for verification)</div>
+                <div className={styles.uploadSub}>PDF or Link to Deck</div>
              </div>
           </div>
         </section>
 
+        {/* 04: Collab */}
+        <section className={styles.sectionCard}>
+          <div className={styles.sectionHeader}>
+            <div className={styles.sectionIcon}>04</div>
+            <h2 className={styles.sectionTitle}>Collaboration & Trust</h2>
+          </div>
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel}>Preferred Content Types</label>
+            <Select
+              options={CONTENT_TYPES}
+              value={formData.contentTypes}
+              onChange={(e) => handleChange('contentTypes', e.target.value)}
+              placeholder="What type of collabs do you prefer?"
+            />
+          </div>
+          
+          <div className={styles.fieldGroup} style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+            <input 
+               type="checkbox" 
+               id="trustCheck" 
+               checked={formData.verifiedConsent}
+               onChange={(e) => handleChange('verifiedConsent', e.target.checked)}
+               style={{ marginTop: '4px', accentColor: 'var(--color-primary)' }}
+            />
+            <label htmlFor="trustCheck" className={styles.footerNote} style={{ marginTop: 0, textAlign: 'left' }}>
+              I agree to the <strong>Verified Status Verification Process</strong>. I confirm my social analytics, reach, and identity details are accurate. I understand Meshlyy will verify this data before onboarding me to the Brand Discovery network.
+            </label>
+          </div>
+          {errors.verifiedConsent && <span className={styles.fieldError} style={{ marginTop: '0.5rem', display: 'block' }}>{errors.verifiedConsent}</span>}
+        </section>
+
         <button type="submit" className={styles.submitBtn} disabled={loading}>
-          {loading ? 'Initializing...' : 'Create Creator Profile'}
+          {loading ? 'Initializing Profile...' : 'Submit Creator Application'}
         </button>
 
-        <p className={styles.footerNote}>
-          By joining, you agree to Meshlyy's Terms of Service and Privacy Policy.
-          Your data is indexed for brand discovery only.
-        </p>
       </form>
     </div>
   );
