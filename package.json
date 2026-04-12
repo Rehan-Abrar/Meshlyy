@@ -1,0 +1,10 @@
+{
+  "name": "meshlyy-monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --prefix Frontend",
+    "build": "npm run build --prefix Frontend",
+    "start": "npm run start --prefix Frontend",
+    "lint": "npm run lint --prefix Frontend"
+  }
+}
