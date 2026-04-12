@@ -59,6 +59,7 @@ const DiscoverySearch = () => {
   const [search, setSearch]       = useState('');
   const [niche, setNiche]         = useState('All');
   const [platform, setPlatform]   = useState('All');
+  const [showFilters, setShowFilters] = useState(false);
 
   const filtered = CREATORS.filter(c => {
     const matchName     = c.name.toLowerCase().includes(search.toLowerCase());
@@ -67,72 +68,84 @@ const DiscoverySearch = () => {
     return matchName && matchNiche && matchPlatform;
   });
 
+  const clearFilters = () => {
+    setSearch('');
+    setNiche('All');
+    setPlatform('All');
+    setShowFilters(false);
+  };
+
   return (
     <div className={styles.page}>
-      <aside className={styles.sidebar} aria-label="Filter sidebar">
-        <h2 className={styles.sidebarTitle}>Filters</h2>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel}>Search</label>
-          <Input
-            id="search"
-            type="text"
-            placeholder="Creator name..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel}>Niche</label>
-          <div className={styles.pillGroup}>
-            {NICHES.map(n => (
-              <button
-                key={n}
-                className={`${styles.filterPill} ${niche === n ? styles.filterPillActive : ''}`}
-                onClick={() => setNiche(n)}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className={styles.filterGroup}>
-          <label className={styles.filterLabel}>Platform</label>
-          <div className={styles.pillGroup}>
-            {PLATFORMS.map(p => (
-              <button
-                key={p}
-                className={`${styles.filterPill} ${platform === p ? styles.filterPillActive : ''}`}
-                onClick={() => setPlatform(p)}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => { setSearch(''); setNiche('All'); setPlatform('All'); }}
-        >
-          Clear filters
-        </Button>
-      </aside>
-
-      <main className={styles.results}>
-        <div className={styles.resultsHeader}>
+      <header className={styles.header}>
+        <div className={styles.titleArea}>
           <h1 className={styles.resultsTitle}>
             Creator Discovery
             <span className={styles.resultsCount}>{filtered.length} creators</span>
           </h1>
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            className={styles.mobileFilterToggle}
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            {showFilters ? '✕ Close Filters' : '🔍 Filter & Search'}
+          </Button>
         </div>
+
+        <div className={`${styles.filterBar} ${showFilters ? styles.filterBarActive : ''}`}>
+          <div className={styles.searchGroup}>
+            <Input
+              id="search"
+              type="text"
+              placeholder="Search by name..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className={styles.searchInput}
+            />
+          </div>
+
+          <div className={styles.filtersRow}>
+            <div className={styles.dropdownGroup}>
+              <select 
+                className={styles.select} 
+                value={niche} 
+                onChange={e => setNiche(e.target.value)}
+                aria-label="Filter by Niche"
+              >
+                {NICHES.map(n => <option key={n} value={n}>{n} Niche</option>)}
+              </select>
+            </div>
+
+            <div className={styles.dropdownGroup}>
+              <select 
+                className={styles.select} 
+                value={platform} 
+                onChange={e => setPlatform(e.target.value)}
+                aria-label="Filter by Platform"
+              >
+                {PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+
+            {(search || niche !== 'All' || platform !== 'All') && (
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                Clear
+              </Button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <main className={styles.results}>
         <div className={styles.grid}>
           {filtered.length > 0
             ? filtered.map(c => <CreatorResultCard key={c.id} creator={c} />)
-            : <p className={styles.empty}>No creators match your filters.</p>
+            : <div className={styles.emptyState}>
+                <span className={styles.emptyIcon}>🔍</span>
+                <p>No creators matched your selection.</p>
+                <Button variant="primary" size="sm" onClick={clearFilters}>Clear All Filters</Button>
+              </div>
           }
         </div>
       </main>

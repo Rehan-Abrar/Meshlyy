@@ -58,10 +58,22 @@ const CreatorCard = ({ creator }) => (
 );
 
 const BrandDashboard = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiResponse, setAiResponse] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(user?.name || '');
+  const [editCompany, setEditCompany] = useState(user?.company || '');
+  const [editIndustry, setEditIndustry] = useState(user?.industry || '');
+
+  const handleProfileSave = () => {
+    if (updateUser) {
+      updateUser({ name: editName, company: editCompany, industry: editIndustry });
+    }
+    setIsEditing(false);
+  };
 
   const handleAskAI = async () => {
     if (!aiPrompt.trim()) return;
@@ -76,15 +88,34 @@ const BrandDashboard = () => {
   return (
     <div className={styles.page}>
       <div className={styles.topBar}>
-        <div>
-          <h1 className={styles.greeting}>
-            Welcome back, <span className={styles.brandName}>{user?.name || 'Brand'}</span>
-          </h1>
-          <p className={styles.subGreet}>Here's your campaign overview for today.</p>
+        <div className={styles.greetingSection}>
+          {isEditing ? (
+            <div className={styles.editForm}>
+              <div className={styles.editInputGroup}>
+                <Input size="sm" label="Your Name" value={editName} onChange={e => setEditName(e.target.value)} />
+                <Input size="sm" label="Company Name" value={editCompany} onChange={e => setEditCompany(e.target.value)} />
+                <Input size="sm" label="Industry" value={editIndustry} onChange={e => setEditIndustry(e.target.value)} />
+              </div>
+              <div className={styles.editActions}>
+                <Button variant="primary" size="sm" onClick={handleProfileSave}>💾 Save Brand Profile</Button>
+                <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>Cancel</Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <h1 className={styles.greeting}>
+                Welcome back, <span className={styles.brandName}>{user?.name || 'Brand'}</span>
+              </h1>
+              <p className={styles.subGreet}>Managing {user?.company || 'Your Brand'} · {user?.industry || 'General'}</p>
+              <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)} style={{ marginTop: '0.5rem', padding: 0 }}>✏ Edit Brand Details</Button>
+            </>
+          )}
         </div>
-        <Link to="/brand/campaigns/new">
-          <Button variant="primary">+ New Campaign</Button>
-        </Link>
+        {!isEditing && (
+          <Link to="/brand/campaigns/new">
+            <Button variant="primary">+ New Campaign</Button>
+          </Link>
+        )}
       </div>
 
       {/* KPIs */}
@@ -96,51 +127,84 @@ const BrandDashboard = () => {
       </section>
 
       <div className={styles.mainGrid}>
-        {/* AI Campaign Assistant */}
-        <section className={styles.aiSection} aria-labelledby="ai-heading">
-          <h2 id="ai-heading" className={styles.sectionTitle}>
-            <span className={styles.aiIcon}>✦</span>
-            AI Campaign Assistant
-          </h2>
-          <Card variant="glass" className={styles.aiCard}>
-            <Input
-              id="ai-prompt"
-              label="Describe your campaign goal"
-              placeholder="e.g. I want to launch a summer skincare campaign targeting Gen Z women..."
-              value={aiPrompt}
-              onChange={e => setAiPrompt(e.target.value)}
-            />
-            <div className={styles.aiActions}>
-              <Button
-                variant="primary"
-                onClick={handleAskAI}
-                disabled={aiLoading || !aiPrompt.trim()}
-              >
-                {aiLoading ? '✦ Thinking…' : '✦ Ask Claude'}
-              </Button>
-            </div>
-            {aiResponse && (
-              <div className={styles.aiResponse}>
-                <span className="micro-label">Claude's Recommendation</span>
-                <p>{aiResponse}</p>
+        <div className={styles.contentColumn}>
+          {/* Notifications Section */}
+          <section className={styles.section} aria-labelledby="notif-heading">
+            <h2 id="notif-heading" className={styles.sectionTitle}>
+              <span className={styles.icon}>🔔</span>
+              Notifications
+            </h2>
+            <Card variant="standard" className={styles.notifList}>
+              <div className={styles.notifItem}>
+                <div className={styles.notifAvatar}>MS</div>
+                <div className={styles.notifText}>
+                  <strong>Maya Sterling</strong> responded to your "Summer Glow" campaign brief.
+                  <span className={styles.notifTime}>2 hours ago</span>
+                </div>
+                <Button variant="ghost" size="sm">Review</Button>
               </div>
-            )}
-          </Card>
-        </section>
+              <div className={styles.divider} />
+              <div className={styles.notifItem}>
+                <div className={styles.notifAvatar}>LK</div>
+                <div className={styles.notifText}>
+                  <strong>Leo Kim</strong> accepted your invitation for "Tech Review 2025".
+                  <span className={styles.notifTime}>5 hours ago</span>
+                </div>
+                <Button variant="ghost" size="sm">Review</Button>
+              </div>
+            </Card>
+          </section>
 
-        {/* Quick links */}
-        <section className={styles.quickSection} aria-label="Quick actions">
-          <h2 className={styles.sectionTitle}>Quick Actions</h2>
-          <div className={styles.quickLinks}>
-            <Link to="/brand/search" className={styles.quickLink}>
-              <span>◎</span> Discover Creators
-            </Link>
-            <Link to="/brand/campaigns" className={styles.quickLink}>
-              <span>◉</span> View Campaigns
-            </Link>
-            <Link to="/brand/shortlist" className={styles.quickLink}>
-              <span>◇</span> My Shortlist
-            </Link>
+          {/* AI Campaign Assistant */}
+          <section className={styles.aiSection} aria-labelledby="ai-heading">
+            <h2 id="ai-heading" className={styles.sectionTitle}>
+              <span className={styles.aiIcon}>✦</span>
+              AI Strategy Hub
+            </h2>
+            <Card variant="glass" className={styles.aiCard}>
+              <Input
+                id="ai-prompt"
+                label="Launch new strategy"
+                placeholder="e.g. Find me creators similar to Zara Ahmed for a fashion drop..."
+                value={aiPrompt}
+                onChange={e => setAiPrompt(e.target.value)}
+              />
+              <div className={styles.aiActions}>
+                <Link to="/brand/ai-assistant">
+                  <Button variant="ghost" size="sm">Open Full Chat →</Button>
+                </Link>
+                <Button
+                  variant="primary"
+                  onClick={handleAskAI}
+                  disabled={aiLoading || !aiPrompt.trim()}
+                >
+                  {aiLoading ? '✦ Thinking…' : '✦ Quick Suggest'}
+                </Button>
+              </div>
+              {aiResponse && (
+                <div className={styles.aiResponse}>
+                  <p>{aiResponse}</p>
+                </div>
+              )}
+            </Card>
+          </section>
+        </div>
+
+        {/* My Campaigns Column */}
+        <section className={styles.campaignsColumn} aria-labelledby="campaigns-heading">
+          <h2 id="campaigns-heading" className={styles.sectionTitle}>My Campaigns</h2>
+          <div className={styles.campaignList}>
+            <Card variant="container" className={styles.campaignMiniCard}>
+              <Badge variant="verified">Active</Badge>
+              <h4 className={styles.miniTitle}>Summer Glow 2025</h4>
+              <p className={styles.miniMeta}>12 Creators · $5.4K Spent</p>
+            </Card>
+            <Card variant="container" className={styles.campaignMiniCard}>
+              <Badge variant="secondary">Draft</Badge>
+              <h4 className={styles.miniTitle}>Holiday Gift Guide</h4>
+              <p className={styles.miniMeta}>Not launched</p>
+            </Card>
+            <Link to="/brand/campaigns" className={styles.viewAllLink}>View all campaigns →</Link>
           </div>
         </section>
       </div>

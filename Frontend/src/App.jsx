@@ -13,11 +13,14 @@ import BrandDashboard from './features/brand/BrandDashboard';
 import DiscoverySearch from './features/brand/DiscoverySearch';
 import CreatorDetailPage from './features/brand/CreatorDetailPage';
 import CampaignBuilder from './features/brand/CampaignBuilder';
+import BrandAIAssistant from './features/brand/BrandAIAssistant';
+import Shortlist from './features/brand/Shortlist';
 
 // Influencer pages
 import InfluencerDashboard from './features/influencer/InfluencerDashboard';
 import AIContentAssistant from './features/influencer/AIContentAssistant';
 import CampaignFeed from './features/influencer/CampaignFeed';
+import InvitationDetail from './features/influencer/InvitationDetail';
 
 // Admin pages
 import VerificationQueue from './features/admin/VerificationQueue';
@@ -54,11 +57,11 @@ const App = () => (
       <Route path="/brand/campaigns/new" element={
         <ProtectedRoute allowedRole="brand"><CampaignBuilder /></ProtectedRoute>
       } />
-      <Route path="/brand/campaigns" element={
-        <ProtectedRoute allowedRole="brand"><LandingPage /></ProtectedRoute>
-      } />
       <Route path="/brand/shortlist" element={
-        <ProtectedRoute allowedRole="brand"><DiscoverySearch /></ProtectedRoute>
+        <ProtectedRoute allowedRole="brand"><Shortlist /></ProtectedRoute>
+      } />
+      <Route path="/brand/ai-assistant" element={
+        <ProtectedRoute allowedRole="brand"><BrandAIAssistant /></ProtectedRoute>
       } />
 
       {/* === INFLUENCER === */}
@@ -71,8 +74,11 @@ const App = () => (
       <Route path="/influencer/invitations" element={
         <ProtectedRoute allowedRole="influencer"><CampaignFeed /></ProtectedRoute>
       } />
-      <Route path="/influencer/profile" element={
-        <ProtectedRoute allowedRole="influencer"><InfluencerDashboard /></ProtectedRoute>
+      <Route path="/influencer/invitations/:id" element={
+        <ProtectedRoute allowedRole="influencer"><InvitationDetail /></ProtectedRoute>
+      } />
+      <Route path="/influencer/campaigns" element={
+        <ProtectedRoute allowedRole="influencer"><CampaignFeed /></ProtectedRoute>
       } />
       <Route path="/influencer/analytics" element={
         <ProtectedRoute allowedRole="influencer"><InfluencerDashboard /></ProtectedRoute>

@@ -195,39 +195,111 @@
   flex-shrink: 0;
 }
 
-.creatorInfo { flex: 1; min-width: 0; }
-.creatorName {
-  font-size: 0.9375rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: var(--color-on-surface);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.editForm {
+  background: var(--color-surface-container);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  width: 100%;
+  max-width: 500px;
 }
 
-.creatorStats {
+.editInputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.editActions {
   display: flex;
   gap: var(--space-sm);
 }
 
-.creatorStat {
+.contentColumn {
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: var(--space-xl);
 }
-.creatorStat span:last-child {
-  font-size: var(--text-sm);
-  font-weight: 500;
+
+/* Notifications */
+.notifList {
+  display: flex;
+  flex-direction: column;
+}
+
+.notifItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+}
+
+.notifAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-surface-container-high);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.notifText {
+  flex: 1;
+  font-size: 0.875rem;
   color: var(--color-on-surface);
 }
 
-.creatorActions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: auto;
+.notifTime {
+  display: block;
+  font-size: var(--text-micro);
+  color: var(--color-on-surface-variant);
+  margin-top: 0.125rem;
 }
-.creatorActions > * { flex: 1; }
+
+.divider {
+  height: 1px;
+  background: var(--glass-border);
+  margin: 0.25rem 0;
+}
+
+/* Campaigns Column */
+.campaignList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.campaignMiniCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: var(--space-sm);
+}
+
+.miniTitle {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-on-surface);
+}
+
+.miniMeta {
+  font-size: var(--text-micro);
+  color: var(--color-on-surface-variant);
+}
+
+.viewAllLink {
+  font-size: var(--text-sm);
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
 
 @media (max-width: 1100px) {
   .kpiGrid       { grid-template-columns: repeat(2, 1fr); }

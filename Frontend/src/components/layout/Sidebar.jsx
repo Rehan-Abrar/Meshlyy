@@ -4,15 +4,14 @@ import styles from './Sidebar.module.css';
 
 const NAV_ITEMS = {
   brand: [
-    { path: '/brand/dashboard',     label: 'Dashboard',    icon: '◈' },
-    { path: '/brand/search',        label: 'Discover',     icon: '◎' },
-    { path: '/brand/campaigns',     label: 'Campaigns',    icon: '◉' },
-    { path: '/brand/shortlist',     label: 'Shortlist',    icon: '◇' },
-    { path: '/brand/ai-assistant',  label: 'AI Assistant', icon: '✦' },
+    { path: '/brand/dashboard',    label: 'Dashboard',    icon: '◈' },
+    { path: '/brand/search',       label: 'Discover',     icon: '◎' },
+    { path: '/brand/shortlist',    label: 'Shortlist',    icon: '◇' },
+    { path: '/brand/ai-assistant', label: 'AI Assistant', icon: '✦' },
   ],
   influencer: [
     { path: '/influencer/dashboard',    label: 'Dashboard',    icon: '◈' },
-    { path: '/influencer/profile',      label: 'Profile',      icon: '◎' },
+    { path: '/influencer/campaigns',    label: 'Campaigns',    icon: '◎' },
     { path: '/influencer/invitations',  label: 'Invitations',  icon: '◉' },
     { path: '/influencer/ai-assistant', label: 'AI Assistant', icon: '✦' },
   ],

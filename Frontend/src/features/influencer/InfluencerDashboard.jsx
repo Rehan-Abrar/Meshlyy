@@ -15,15 +15,26 @@ const StatBlock = ({ label, value, sub, icon }) => (
 );
 
 const InfluencerDashboard = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [postUrl, setPostUrl] = useState('');
   const [savedPost, setSavedPost] = useState('');
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(user?.name || '');
+  const [editNiche, setEditNiche] = useState(user?.niche || '');
 
   const handlePostSave = () => {
     if (postUrl.trim()) {
       setSavedPost(postUrl.trim());
       setPostUrl('');
     }
+  };
+
+  const handleProfileSave = () => {
+    if (updateUser) {
+      updateUser({ name: editName, niche: editNiche });
+    }
+    setIsEditing(false);
   };
 
   return (
@@ -38,8 +49,27 @@ const InfluencerDashboard = () => {
           </div>
         </div>
         <div className={styles.heroInfo}>
-          <span className={styles.heroTagline}>{user?.niche || 'Lifestyle & Tech Enthusiast'}</span>
-          <h1 id="influencer-name" className={styles.heroName}>{user?.name || 'Creator'}</h1>
+          {isEditing ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+              <input 
+                value={editNiche} 
+                onChange={(e) => setEditNiche(e.target.value)} 
+                placeholder="Your Niche"
+                style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--glass-border)', background: 'var(--color-surface-container-high)', color: 'var(--color-on-surface)' }}
+              />
+              <input 
+                value={editName} 
+                onChange={(e) => setEditName(e.target.value)} 
+                placeholder="Your Name"
+                style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--glass-border)', background: 'var(--color-surface-container-high)', color: 'var(--color-on-surface)' }}
+              />
+            </div>
+          ) : (
+            <>
+              <span className={styles.heroTagline}>{user?.niche || 'Lifestyle & Tech Enthusiast'}</span>
+              <h1 id="influencer-name" className={styles.heroName}>{user?.name || 'Creator'}</h1>
+            </>
+          )}
           <p className={styles.heroBio}>
             Creating authentic content and partnering with global brands.
           </p>
@@ -49,9 +79,11 @@ const InfluencerDashboard = () => {
           </div>
         </div>
         <div className={styles.heroActions}>
-          <Link to="/influencer/profile">
-            <Button variant="secondary">✏ Edit Profile</Button>
-          </Link>
+          {isEditing ? (
+            <Button variant="primary" onClick={handleProfileSave}>💾 Save Profile</Button>
+          ) : (
+            <Button variant="secondary" onClick={() => setIsEditing(true)}>✏ Edit Profile</Button>
+          )}
           <Button variant="ghost">↗ Media Kit</Button>
         </div>
       </section>

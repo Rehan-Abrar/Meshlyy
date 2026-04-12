@@ -21,6 +21,14 @@ const MASTER_ACCOUNTS = {
     password: 'masteradmin123',
     user: { name: 'Admin', email: 'admin@meshlyy.com', role: 'admin' },
   },
+  'brand_test@meshlyy.com': {
+    password: 'Password123!',
+    user: { name: 'Rehan Abrar', email: 'brand_test@meshlyy.com', role: 'brand', company: 'Meshlyy Pro', industry: 'Technology' },
+  },
+  'creator_test@meshlyy.com': {
+    password: 'Password123!',
+    user: { name: 'Maya Sterling', email: 'creator_test@meshlyy.com', role: 'influencer', niche: 'Tech Reviews', platform: 'Instagram', handle: '@mayasterling_tech', audience: '50K – 250K (Mid-tier)' },
+  },
 };
 
 export const AuthProvider = ({ children }) => {
@@ -54,8 +62,12 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(() => setUser(null), []);
 
+  const updateUser = useCallback((updates) => {
+    setUser(prev => ({ ...prev, ...updates }));
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading: loading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, isLoading: loading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -20,6 +20,25 @@
 
 ---
 
+## Strict Domain Boundaries
+
+**STRICT RULE: FRONTEND ONLY**
+- The AI agent is strictly forbidden from modifying ANY files within the `Backend/` directory.
+- All work is confined to the `Frontend/` directory and root documentation (`.gsd/`, `PRD.md`, etc.).
+- Even if prompted, do not cross into the backend unless the user explicitly overrides this rule.
+
+---
+
+## Strict Domain Boundaries
+
+**STRICT RULE: FRONTEND ONLY**
+- The AI agent is strictly forbidden from modifying ANY files within the `Backend/` directory.
+- The AI agent must not run `npm install`, start servers, or create any artifacts in the `Backend/` folder.
+- All work is confined to the `Frontend/` directory and root documentation (`.gsd/`, `PRD.md`, etc.).
+- Even if prompted, do not cross into the backend unless the user explicitly overrides this rule with a "Backend Permission" override.
+
+---
+
 ## Proof Requirements
 
 Every change requires verification evidence:

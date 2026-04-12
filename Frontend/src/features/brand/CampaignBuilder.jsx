@@ -86,7 +86,14 @@ const CampaignBuilder = () => {
         <Button variant="secondary" disabled={step === 0} onClick={() => setStep(s => s - 1)}>← Back</Button>
         {step < STEPS.length - 1
           ? <Button variant="primary" onClick={() => setStep(s => s + 1)}>Next →</Button>
-          : <Button variant="primary" onClick={handleSave}>Launch Campaign</Button>
+          : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+              <Button variant="primary" onClick={handleSave}>Launch Campaign</Button>
+              <Link to="/brand/ai-assistant">
+                <Button variant="ghost" fullWidth>✦ Ask AI for Creator Matches</Button>
+              </Link>
+            </div>
+          )
         }
       </div>
     </div>
