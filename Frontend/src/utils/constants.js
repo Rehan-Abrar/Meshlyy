@@ -12,7 +12,7 @@ export const ROUTES = {
 
   BRAND_DASHBOARD: '/brand/dashboard',
   BRAND_SEARCH:    '/brand/search',
-  BRAND_CAMPAIGNS: '/brand/campaigns',
+  BRAND_CAMPAIGNS: '/brand/campaigns/all',
   BRAND_SHORTLIST: '/brand/shortlist',
 
   INFLUENCER_DASHBOARD: '/influencer/dashboard',

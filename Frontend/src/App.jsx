@@ -59,9 +59,10 @@ const App = () => (
       <Route path="/brand/campaigns/new" element={
         <ProtectedRoute allowedRole="brand"><CampaignBuilder /></ProtectedRoute>
       } />
-      <Route path="/brand/campaigns" element={
+      <Route path="/brand/campaigns/all" element={
         <ProtectedRoute allowedRole="brand"><BrandCampaigns /></ProtectedRoute>
       } />
+      <Route path="/brand/campaigns" element={<Navigate to="/brand/campaigns/all" replace />} />
       <Route path="/brand/shortlist" element={
         <ProtectedRoute allowedRole="brand"><Shortlist /></ProtectedRoute>
       } />

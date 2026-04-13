@@ -302,7 +302,7 @@ const BrandDashboard = () => {
                 <p className={styles.miniMeta}>Budget: ${formatNumber(Number(campaign.budget) || 0)}</p>
               </Card>
             ))}
-            <Link to="/brand/campaigns" className={styles.viewAllLink}>View all campaigns →</Link>
+            <Link to="/brand/campaigns/all" className={styles.viewAllLink}>View all campaigns →</Link>
           </div>
         </section>
       </div>

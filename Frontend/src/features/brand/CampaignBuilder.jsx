@@ -108,7 +108,7 @@ const CampaignBuilder = () => {
           status: 'ACTIVE',
         });
 
-        navigate('/brand/dashboard');
+        navigate('/brand/campaigns/all');
         return;
       }
 
@@ -129,7 +129,7 @@ const CampaignBuilder = () => {
         visibility: form.visibility || 'MATCHED',
       });
 
-      navigate('/brand/dashboard');
+      navigate('/brand/campaigns/all');
     } catch (err) {
       if (isDemoAuthMode()) {
         upsertDemoCampaign({
@@ -150,7 +150,7 @@ const CampaignBuilder = () => {
           status: 'ACTIVE',
         });
 
-        navigate('/brand/dashboard');
+        navigate('/brand/campaigns/all');
         return;
       }
 
@@ -165,6 +165,9 @@ const CampaignBuilder = () => {
     <Step2 key={1} form={form} onChange={handleChange} />,
     <Step3 key={2} form={form} onChange={handleChange} />,
   ];
+  const currentStep = Number.isFinite(step)
+    ? Math.max(0, Math.min(step, STEPS.length - 1))
+    : 0;
 
   return (
     <div className={styles.page}>
@@ -173,16 +176,16 @@ const CampaignBuilder = () => {
         <Button variant="primary" onClick={handleSave}>{saved ? '✓ Saved!' : 'Save Campaign'}</Button>
       </div>
 
-      <StepTracker current={step} />
+      <StepTracker current={currentStep} />
 
       <Card variant="standard" className={styles.formCard}>
-        {stepComponents[step]}
+        {stepComponents[currentStep]}
         {error && <p role="alert">{error}</p>}
       </Card>
 
       <div className={styles.navRow}>
-        <Button variant="secondary" disabled={step === 0} onClick={() => setStep(s => s - 1)}>← Back</Button>
-        {step < STEPS.length - 1
+        <Button variant="secondary" disabled={currentStep === 0} onClick={() => setStep(s => Math.max(s - 1, 0))}>← Back</Button>
+        {currentStep < STEPS.length - 1
           ? <Button variant="primary" onClick={() => setStep(s => Math.min(s + 1, STEPS.length - 1))}>Next →</Button>
           : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
