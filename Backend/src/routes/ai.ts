@@ -52,6 +52,26 @@ function asStringArray(value: unknown): string[] {
     .filter((item) => item.length > 0);
 }
 
+function firstNonEmptyString(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed.length > 0) {
+        return trimmed;
+      }
+    }
+  }
+  return null;
+}
+
+function toPositiveNumber(value: unknown): number | null {
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && numeric > 0) {
+    return numeric;
+  }
+  return null;
+}
+
 function mapContentFormatToServiceType(format: 'reel' | 'post' | 'story' | 'carousel'): 'STORY' | 'POST' | 'REEL' | 'BUNDLE' {
   if (format === 'story') return 'STORY';
   if (format === 'reel') return 'REEL';
@@ -256,6 +276,16 @@ const FitScoreRequestSchema = z.object({
   creator_id: z.string().uuid(),
 });
 
+const FitScoreContextParamsSchema = z.object({
+  creatorId: z.string().uuid(),
+});
+
+const FitScoreContextRequestSchema = z.object({
+  brief: z.record(z.unknown()).optional(),
+  strategy: z.record(z.unknown()).optional(),
+  campaignContext: z.record(z.unknown()).optional(),
+});
+
 router.post('/fit-score', checkRole('BRAND'), async (req: AuthenticatedRequest, res, next) => {
   try {
     const { campaign_id, creator_id } = FitScoreRequestSchema.parse(req.body);
@@ -314,9 +344,9 @@ router.post('/fit-score', checkRole('BRAND'), async (req: AuthenticatedRequest, 
 
     const { data: lowestRateCard } = await supabase
       .from('rate_cards')
-      .select('rate_amount, currency, service_type')
+      .select('price, currency, service_type')
       .eq('influencer_id', creator_id)
-      .order('rate_amount', { ascending: true })
+      .order('price', { ascending: true })
       .limit(1)
       .maybeSingle();
 
@@ -357,7 +387,7 @@ router.post('/fit-score', checkRole('BRAND'), async (req: AuthenticatedRequest, 
       avgComments: Number(stats?.avg_comments) || 0,
       topCountries,
       bio: creator.bio,
-      lowestRateAmount: Number(lowestRateCard?.rate_amount) || 0,
+      lowestRateAmount: Number(lowestRateCard?.price) || 0,
       lowestRateCurrency: lowestRateCard?.currency || campaignCurrency,
       lowestRateServiceType: lowestRateCard?.service_type || 'POST',
     });
@@ -384,6 +414,212 @@ router.post('/fit-score', checkRole('BRAND'), async (req: AuthenticatedRequest, 
         provider: result.provider,
         fallbackUsed: result.fallbackUsed,
         attemptedProviders: result.attemptedProviders,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /v1/ai/fit-score/:creatorId
+ * Score creator fit using in-conversation context (no saved campaign required)
+ */
+router.post('/fit-score/:creatorId', checkRole('BRAND'), async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const { creatorId } = FitScoreContextParamsSchema.parse(req.params);
+    const { brief, strategy, campaignContext } = FitScoreContextRequestSchema.parse(req.body ?? {});
+    const brandId = getBrandId(req.auth!);
+
+    const { data: brand } = await supabase
+      .from('brand_profiles')
+      .select('company_name, tone_voice, target_demographics, campaign_goals, budget_range_min, budget_range_max')
+      .eq('id', brandId)
+      .single();
+
+    if (!brand) {
+      throw Errors.NOT_FOUND('Brand profile not found');
+    }
+
+    const { data: creator } = await supabase
+      .from('influencer_profiles')
+      .select(`
+        ig_handle,
+        niche_primary,
+        niche_secondary,
+        bio,
+        influencer_stats (
+          follower_count,
+          engagement_rate,
+          avg_likes,
+          avg_comments,
+          top_countries
+        )
+      `)
+      .eq('id', creatorId)
+      .eq('is_verified', true)
+      .eq('is_deleted', false)
+      .single();
+
+    if (!creator) {
+      throw Errors.NOT_FOUND('Creator not found');
+    }
+
+    const stats = Array.isArray(creator.influencer_stats)
+      ? creator.influencer_stats[0]
+      : creator.influencer_stats;
+
+    const { data: lowestRateCard } = await supabase
+      .from('rate_cards')
+      .select('price, currency, service_type')
+      .eq('influencer_id', creatorId)
+      .order('price', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    const briefData = asObject(brief);
+    const strategyData = asObject(strategy);
+    const contextualData = asObject(campaignContext);
+
+    const briefBudgetBreakdown = asObject(briefData.budgetBreakdown);
+    const creatorFees = asObject(briefBudgetBreakdown.creatorFees);
+    const paidAmplification = asObject(briefBudgetBreakdown.paidAmplification);
+    const production = asObject(briefBudgetBreakdown.production);
+
+    const briefBudgetParts = [
+      toPositiveNumber(creatorFees.amount),
+      toPositiveNumber(paidAmplification.amount),
+      toPositiveNumber(production.amount),
+    ].filter((amount): amount is number => amount !== null);
+
+    const briefBudgetTotal = briefBudgetParts.length > 0
+      ? briefBudgetParts.reduce((sum, amount) => sum + amount, 0)
+      : null;
+
+    const strategyBudgetAllocation = asObject(strategyData.budgetAllocation);
+    const strategyBudget = toPositiveNumber(strategyBudgetAllocation.planningBudget);
+    const contextBudget = toPositiveNumber(contextualData.budget);
+
+    const maxBudget = toPositiveNumber(brand.budget_range_max);
+    const minBudget = toPositiveNumber(brand.budget_range_min);
+    const campaignBudget = contextBudget
+      ?? briefBudgetTotal
+      ?? strategyBudget
+      ?? maxBudget
+      ?? minBudget
+      ?? 5000;
+
+    const campaignCurrency = firstNonEmptyString(
+      contextualData.currency,
+      strategyBudgetAllocation.currency,
+      creatorFees.currency,
+      paidAmplification.currency,
+      production.currency,
+      'USD'
+    ) || 'USD';
+
+    const campaignTitle = firstNonEmptyString(
+      contextualData.title,
+      briefData.title,
+      briefData.campaignTitle,
+      strategyData.campaignTitle,
+      `${brand.company_name} Creator Campaign`
+    ) || `${brand.company_name} Creator Campaign`;
+
+    const campaignGoals = [
+      ...asStringArray(brand.campaign_goals),
+      ...asStringArray(contextualData.goals),
+    ];
+
+    const contextualObjective = firstNonEmptyString(
+      contextualData.objective,
+      briefData.objective,
+      strategyData.executiveSummary
+    );
+
+    if (contextualObjective) {
+      campaignGoals.push(contextualObjective);
+    }
+
+    const normalizedCampaignGoals = [...new Set(campaignGoals)];
+    if (normalizedCampaignGoals.length === 0) {
+      normalizedCampaignGoals.push(`Increase qualified reach for ${brand.company_name}`);
+    }
+
+    const nicheTargets = [
+      ...asStringArray(contextualData.nicheTargets),
+      ...asStringArray(contextualData.nicheKeywords),
+      ...asStringArray(asObject(briefData.creatorProfile).nicheKeywords),
+      ...asStringArray(asObject(strategyData.recommendedCreatorProfile).nicheKeywords),
+    ];
+
+    const normalizedNiches = [...new Set(nicheTargets)];
+    if (normalizedNiches.length === 0) {
+      normalizedNiches.push(...asStringArray(brand.campaign_goals).slice(0, 3));
+    }
+
+    const contextualDemographics = asObject(contextualData.targetDemographics);
+    const targetDemographics = Object.keys(contextualDemographics).length > 0
+      ? contextualDemographics
+      : asObject(brand.target_demographics);
+
+    const briefSummary = firstNonEmptyString(
+      contextualData.summary,
+      briefData.objective,
+      briefData.briefPreview,
+      strategyData.executiveSummary,
+      `Fit score evaluation for ${brand.company_name}`
+    ) || `Fit score evaluation for ${brand.company_name}`;
+
+    const topCountriesObject = asObject(stats?.top_countries);
+    const topCountries = Object.keys(topCountriesObject).length > 0
+      ? topCountriesObject as Record<string, number>
+      : null;
+
+    const prompt = buildFitScorePrompt({
+      campaignTitle,
+      campaignGoals: normalizedCampaignGoals,
+      nicheTargets: normalizedNiches,
+      campaignBudget,
+      campaignCurrency,
+      briefSummary,
+      brandToneVoice: brand.tone_voice || 'Authentic and direct',
+      targetDemographics,
+      igHandle: creator.ig_handle,
+      nichePrimary: creator.niche_primary,
+      nicheSecondary: creator.niche_secondary,
+      followerCount: Number(stats?.follower_count) || 0,
+      engagementRate: Number(stats?.engagement_rate) || 0,
+      avgLikes: Number(stats?.avg_likes) || 0,
+      avgComments: Number(stats?.avg_comments) || 0,
+      topCountries,
+      bio: creator.bio,
+      lowestRateAmount: Number(lowestRateCard?.price) || 0,
+      lowestRateCurrency: lowestRateCard?.currency || campaignCurrency,
+      lowestRateServiceType: lowestRateCard?.service_type || 'POST',
+    });
+
+    const result = await callAI(
+      prompt,
+      'fit_score',
+      FIT_SCORE_PROMPT_VERSION,
+      brandId,
+      null,
+      { timeoutMs: 30000 }
+    );
+
+    const validatedOutput = FitScoreOutputSchema.parse(result.output);
+
+    res.json({
+      ...validatedOutput,
+      _meta: {
+        tokenCount: result.tokenCount,
+        latencyMs: result.latencyMs,
+        promptVersion: FIT_SCORE_PROMPT_VERSION,
+        provider: result.provider,
+        fallbackUsed: result.fallbackUsed,
+        attemptedProviders: result.attemptedProviders,
+        contextSource: 'conversation_context',
       },
     });
   } catch (error) {

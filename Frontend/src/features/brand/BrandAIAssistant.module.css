@@ -102,6 +102,11 @@
   line-height: 1.6;
 }
 
+.messageText {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
 .user .messageBubble {
   background: var(--color-primary);
   color: #fff;
@@ -113,6 +118,98 @@
   color: var(--color-on-surface);
   border-top-left-radius: var(--radius-xs);
   border: 1px solid var(--glass-border);
+}
+
+.creatorResults {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.creatorGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-sm);
+}
+
+.creatorCard {
+  border: 1px solid var(--glass-border);
+  background: var(--color-surface-container-high);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.creatorCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.creatorHandle {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-on-surface);
+}
+
+.creatorVerified {
+  font-size: var(--text-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-success);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--radius-full);
+  padding: 0.125rem 0.5rem;
+}
+
+.creatorNiche {
+  margin: 0;
+  color: var(--color-on-surface-variant);
+  font-size: var(--text-sm);
+}
+
+.creatorStats {
+  display: grid;
+  gap: 0.15rem;
+  color: var(--color-on-surface);
+  font-size: var(--text-sm);
+}
+
+.creatorActions {
+  margin-top: 0.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.creatorLink {
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.creatorLink:hover {
+  text-decoration: underline;
+}
+
+.creatorSelectButton {
+  border: none;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius-full);
+  padding: 0.3rem 0.7rem;
+  font-size: var(--text-micro);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.creatorSelectButton:hover {
+  filter: brightness(1.06);
 }
 
 .typingDots {
