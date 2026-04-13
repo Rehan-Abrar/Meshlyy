@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import { useAuth } from '../context/AuthContext';
+import { useBreakpoint } from '../hooks/useBreakpoint';
 import styles from './AppLayout.module.css';
 import elementImg from '../assets/element.png';
 
@@ -11,42 +12,50 @@ import elementImg from '../assets/element.png';
  */
 const AppLayout = () => {
   const { user } = useAuth();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 900);
+  const { isMobile } = useBreakpoint();
   const location = useLocation();
 
-  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
-  const closeSidebar = () => setIsSidebarOpen(false);
+  // Sidebar is open by default on desktop, closed on mobile
+  const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
 
-  // Close sidebar on route change (for mobile)
+  // Track the previous isMobile value via ref to detect breakpoint crossings
+  // without calling setState directly inside an effect body.
+  const prevIsMobileRef = useRef(isMobile);
+
   useEffect(() => {
-    if (window.innerWidth <= 900) {
-      closeSidebar();
+    const crossedBreakpoint = prevIsMobileRef.current !== isMobile;
+    prevIsMobileRef.current = isMobile;
+
+    if (crossedBreakpoint) {
+      // Intentional: sync sidebar state across breakpoint boundary
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsSidebarOpen(!isMobile);
+    } else if (isMobile) {
+      // Route changed while on mobile — close the drawer
+      setIsSidebarOpen(false);
     }
-  }, [location.pathname]);
+  }, [isMobile, location.pathname]);
+
+  const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
+  const closeSidebar  = () => setIsSidebarOpen(false);
 
   return (
     <div className={styles.layout}>
       {/* Global Background Watermark */}
       <div 
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundImage: `url(${elementImg})`,
-          backgroundRepeat: 'no-repeat',
-          backgroundPosition: 'center center',
-          backgroundSize: '50vw',
-          opacity: 0.05,
-          pointerEvents: 'none',
-          zIndex: 0
-        }}
+        className={styles.watermark}
+        style={{ backgroundImage: `url(${elementImg})` }} 
       />
-      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      
+      <div className={styles.inner}>
         <Header toggleSidebar={toggleSidebar} />
         <div className={styles.body}>
-          {user && <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />}
+          {user && (
+            <Sidebar 
+              isOpen={isSidebarOpen} 
+              onClose={closeSidebar} 
+            />
+          )}
           <main className={styles.main} id="main-content">
             <Outlet />
           </main>

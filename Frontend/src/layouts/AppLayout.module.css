@@ -2,16 +2,49 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  position: relative;
+}
+
+/* Wraps header + body above the watermark layer */
+.inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 .body {
   display: flex;
   flex: 1;
   padding-top: 4rem; /* header height */
+  position: relative;
+  z-index: 1;
 }
 
 .main {
   flex: 1;
   min-width: 0;
   overflow-x: hidden;
+  padding: var(--space-md);
+}
+
+.watermark {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: 50vw;
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@media (max-width: 768px) {
+  .main {
+    padding: var(--space-sm);
+  }
 }

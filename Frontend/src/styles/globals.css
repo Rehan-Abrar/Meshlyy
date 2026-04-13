@@ -88,6 +88,12 @@
   --transition-fast: 150ms ease;
   --transition-base: 250ms ease;
   --transition-slow: 400ms ease;
+
+  /* === BREAKPOINTS (reference only — use in JS via theme.js) === */
+  /* These match breakpoints in src/styles/theme.js exactly.      */
+  /* Use CSS @media queries for styling, useBreakpoint for JS.    */
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
 }
 
 /* === BASE RESET === */

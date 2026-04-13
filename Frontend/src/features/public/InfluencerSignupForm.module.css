@@ -197,6 +197,10 @@
   margin-top: 1rem;
 }
 
+.required {
+  color: var(--color-primary);
+}
+
 @media (max-width: 768px) {
   .grid2 { grid-template-columns: 1fr; }
   .sectionCard { padding: 1.5rem; }

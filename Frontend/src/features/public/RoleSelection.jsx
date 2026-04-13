@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
 import Button from '../../components/common/Button';
 import styles from './RoleSelection.module.css';
 
@@ -46,7 +45,6 @@ const RoleCard = ({ role, title, tagline, description, features, cta, onSelect }
 
 const RoleSelection = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
 
   const handleRoleSelect = (role) => {
     // Navigate to signup with role preset

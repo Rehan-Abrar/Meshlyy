@@ -8,6 +8,7 @@ import styles from './InfluencerDashboard.module.css';
 // Stats fetched from backend (placeholder until API wired)
 const StatBlock = ({ label, value, sub, icon }) => (
   <div className={styles.statBlock}>
+    {icon && <span className={styles.statIcon} aria-hidden="true">{icon}</span>}
     <span className={styles.statValue}>{value}</span>
     {sub && <span className={styles.statSub}>{sub}</span>}
     <span className="micro-label">{label}</span>
