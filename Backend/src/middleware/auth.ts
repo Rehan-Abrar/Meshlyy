@@ -6,6 +6,13 @@ import { supabase } from '../config/supabase';
 import { AuthContext, UserRole } from '../types';
 import { Errors, sendError, AppError } from '../lib/errors';
 
+type SupabaseJwtUser = {
+  id: string;
+  email?: string | null;
+  user_metadata?: Record<string, unknown> | null;
+  app_metadata?: Record<string, unknown> | null;
+};
+
 const testTokenMap: Record<string, { userId: string; role: UserRole; email: string }> = {
   'mock-brand-token': {
     userId: '10000000-0000-0000-0000-000000000001',
@@ -36,6 +43,24 @@ const testTokenMap: Record<string, { userId: string; role: UserRole; email: stri
 
 function isTestMode(): boolean {
   return process.env.NODE_ENV === 'test';
+}
+
+function normalizeUserRole(rawRole: unknown): UserRole {
+  const upper = String(rawRole || '').toUpperCase();
+  if (upper === 'BRAND' || upper === 'INFLUENCER' || upper === 'ADMIN') {
+    return upper as UserRole;
+  }
+  return 'INFLUENCER';
+}
+
+function deriveCompanyName(email: string | undefined, userId: string): string {
+  const prefix = (email || '').split('@')[0]?.trim();
+  if (prefix) {
+    return prefix
+      .replace(/[._-]+/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+  return `Brand ${userId.slice(0, 8)}`;
 }
 
 // Extend Express Request to include authContext
@@ -70,11 +95,17 @@ export async function verifyToken(req: Request, res: Response, next: NextFunctio
     }
     
     // Verify JWT with Supabase
-    const user = await verifySupabaseJWT(token);
+    const user = await verifySupabaseJWT(token) as SupabaseJwtUser;
     
     // Attach user ID to request for loadAuthContext
     (req as any).supabaseUserId = user.id;
     (req as any).supabaseToken = token;
+    (req as any).supabaseUser = {
+      id: user.id,
+      email: user.email,
+      user_metadata: user.user_metadata,
+      app_metadata: user.app_metadata,
+    } as SupabaseJwtUser;
     
     next();
   } catch (error) {
@@ -93,6 +124,9 @@ export async function verifyToken(req: Request, res: Response, next: NextFunctio
 export async function loadAuthContext(req: Request, res: Response, next: NextFunction) {
   try {
     const supabaseUserId = (req as any).supabaseUserId;
+    const supabaseToken = (req as any).supabaseToken;
+    const supabaseUser = (req as any).supabaseUser as SupabaseJwtUser | undefined;
+    const isOnboardingRoute = req.originalUrl.startsWith('/v1/onboarding');
     
     if (!supabaseUserId) {
       throw Errors.INVALID_TOKEN();
@@ -103,7 +137,7 @@ export async function loadAuthContext(req: Request, res: Response, next: NextFun
     for (let attempt = 0; attempt < 2; attempt++) {
       const { data, error } = await supabase
         .from('users')
-        .select('id, role, onboarding_completed, onboarding_step, is_deleted')
+        .select('id, email, role, onboarding_completed, onboarding_step, is_deleted')
         .eq('id', supabaseUserId)
         .eq('is_deleted', false)
         .single();
@@ -113,8 +147,8 @@ export async function loadAuthContext(req: Request, res: Response, next: NextFun
         break;
       }
 
-      if (!data && testTokenMap[(req as any).supabaseToken]) {
-        const testToken = (req as any).supabaseToken;
+      if (!data && testTokenMap[supabaseToken]) {
+        const testToken = supabaseToken;
         const testUser = testTokenMap[testToken];
         if (testUser && testUser.userId === supabaseUserId) {
           await supabase.from('users').upsert({
@@ -140,6 +174,22 @@ export async function loadAuthContext(req: Request, res: Response, next: NextFun
             }, { onConflict: 'user_id' });
           }
         }
+      }
+
+      // Auto-provision real Supabase users if auth is valid but users row is not created yet.
+      if (!data && !testTokenMap[supabaseToken] && supabaseUser && supabaseUser.id === supabaseUserId) {
+        const resolvedRole = normalizeUserRole(
+          supabaseUser.user_metadata?.role ?? supabaseUser.app_metadata?.role
+        );
+
+        await supabase.from('users').upsert({
+          id: supabaseUser.id,
+          email: supabaseUser.email || `${supabaseUser.id}@unknown.local`,
+          role: resolvedRole,
+          onboarding_step: 0,
+          onboarding_completed: false,
+          is_deleted: false,
+        }, { onConflict: 'id' });
       }
       
       if (attempt === 0) {
@@ -170,8 +220,8 @@ export async function loadAuthContext(req: Request, res: Response, next: NextFun
         .single();
 
       // In dev/test, make test brand tokens self-healing even when only the user row exists.
-      if (!brandProfile && testTokenMap[(req as any).supabaseToken]) {
-        const testToken = (req as any).supabaseToken;
+      if (!brandProfile && testTokenMap[supabaseToken]) {
+        const testToken = supabaseToken;
         const testUser = testTokenMap[testToken];
 
         if (testUser?.role === 'BRAND' && testUser.userId === user.id) {
@@ -195,6 +245,46 @@ export async function loadAuthContext(req: Request, res: Response, next: NextFun
 
           brandProfile = provisioned.data ?? null;
         }
+      }
+
+      // Self-heal legacy brand users on non-onboarding routes.
+      // This avoids USER_NOT_FOUND / missing profile failures for older accounts,
+      // while keeping explicit onboarding flows untouched.
+      if (!brandProfile && !isOnboardingRoute) {
+        const { data: provisioned, error: provisionError } = await supabase
+          .from('brand_profiles')
+          .upsert({
+            user_id: user.id,
+            company_name: deriveCompanyName(user.email, user.id),
+            industry: 'General',
+            is_deleted: false,
+          }, { onConflict: 'user_id' })
+          .select('id')
+          .single();
+
+        if (!provisionError && provisioned) {
+          brandProfile = provisioned;
+          await supabase
+            .from('users')
+            .update({ onboarding_completed: true, onboarding_step: 5 })
+            .eq('id', user.id)
+            .eq('is_deleted', false);
+
+          user.onboarding_completed = true;
+          user.onboarding_step = 5;
+        }
+      }
+
+      // If a brand profile exists but onboarding flags are stale, heal them.
+      if (brandProfile && !user.onboarding_completed && !isOnboardingRoute) {
+        await supabase
+          .from('users')
+          .update({ onboarding_completed: true, onboarding_step: 5 })
+          .eq('id', user.id)
+          .eq('is_deleted', false);
+
+        user.onboarding_completed = true;
+        user.onboarding_step = 5;
       }
       
       if (brandProfile) {

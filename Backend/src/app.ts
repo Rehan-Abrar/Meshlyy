@@ -5,18 +5,49 @@ import { requestLogger, logger } from './middleware/logging';
 import { timeoutMiddleware, haltOnTimeout } from './middleware/timeout';
 import { errorHandler } from './middleware/errorHandler';
 import { verifyToken, loadAuthContext } from './middleware/auth';
+import { onboardingGuard } from './middleware/onboardingGuard';
 import healthRouter from './routes/health';
 import onboardingRouter from './routes/onboarding';
 import creatorsRouter from './routes/creators';
 import campaignRouter, { matchedCampaignsRouter } from './routes/campaigns';
 import shortlistRouter from './routes/shortlists';
 import collaborationRouter from './routes/collaborations';
+import influencerRouter from './routes/influencer';
 import aiRouter from './routes/ai';
+import mediaRouter from './routes/media';
+import adminRouter from './routes/admin';
+import profileRouter from './routes/profile';
 
 const app = express();
 
+const configuredCorsOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const defaultDevOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const allowedOrigins = new Set([
+  ...configuredCorsOrigins,
+  ...(config.NODE_ENV === 'development' ? defaultDevOrigins : []),
+]);
+
 // Core middleware
-app.use(cors());
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    if (allowedOrigins.has('*') || allowedOrigins.has(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
 app.use(express.json());
 app.use(requestLogger);
 
@@ -30,21 +61,36 @@ app.use('/v1/health', healthRouter);
 // Onboarding routes
 app.use('/v1/onboarding', onboardingRouter);
 
+// Profile routes (authenticated; no onboarding gate)
+app.use('/v1/profile', profileRouter);
+
+// Core platform guard stack (auth context + onboarding completion)
+const corePlatformMiddleware = [verifyToken, loadAuthContext, onboardingGuard];
+
 // Creator discovery and detail routes
-app.use('/v1/creators', creatorsRouter);
+app.use('/v1/creators', ...corePlatformMiddleware, creatorsRouter);
 
 // Campaign routes
-app.use('/v1/campaigns/matched', matchedCampaignsRouter); // Must come before /v1/campaigns
-app.use('/v1/campaigns', campaignRouter);
+app.use('/v1/campaigns/matched', ...corePlatformMiddleware, matchedCampaignsRouter); // Must come before /v1/campaigns
+app.use('/v1/campaigns', ...corePlatformMiddleware, campaignRouter);
 
 // Shortlist routes
-app.use('/v1/shortlists', shortlistRouter);
+app.use('/v1/shortlists', ...corePlatformMiddleware, shortlistRouter);
 
 // Collaboration routes
-app.use('/v1/collaborations', collaborationRouter);
+app.use('/v1/collaborations', ...corePlatformMiddleware, collaborationRouter);
+
+// Influencer dashboard routes
+app.use('/v1/influencer', ...corePlatformMiddleware, influencerRouter);
 
 // AI Co-Pilot routes
-app.use('/v1/ai', aiRouter);
+app.use('/v1/ai', ...corePlatformMiddleware, aiRouter);
+
+// Media upload-signing routes
+app.use('/v1/media', mediaRouter);
+
+// Admin routes
+app.use('/v1/admin', adminRouter);
 
 // 404 catch-all handler (must be before error handler)
 app.use((req, res) => {
