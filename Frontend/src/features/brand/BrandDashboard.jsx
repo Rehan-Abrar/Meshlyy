@@ -7,6 +7,7 @@ import CircularProgress from '../../components/common/CircularProgress';
 import Badge from '../../components/common/Badge';
 import Input from '../../components/common/Input';
 import { aiApi, campaignsApi, creatorsApi, shortlistsApi } from '../../services/api';
+import { addDemoShortlistId, isDemoAuthMode } from '../../services/demoData';
 import styles from './BrandDashboard.module.css';
 
 const formatNumber = (num) => {
@@ -94,7 +95,10 @@ const BrandDashboard = () => {
       });
       setAiResponse(result?.brief || result?.reasoning || 'AI recommendation generated.');
     } catch (err) {
-      setError(err?.message || 'Unable to generate AI suggestion right now.');
+      setAiResponse(
+        `Live AI is temporarily unavailable. Suggested fallback: focus on ${user?.industry || 'your niche'} creators with strong engagement, test a small cohort first, and optimize creatives weekly.`
+      );
+      setError(err?.message || 'Live AI is unavailable right now, showing fallback guidance.');
     } finally {
       setAiLoading(false);
     }
@@ -139,6 +143,11 @@ const BrandDashboard = () => {
     setShortlistingId(creatorId);
     setError('');
     try {
+      if (isDemoAuthMode()) {
+        addDemoShortlistId(creatorId);
+        return;
+      }
+
       await shortlistsApi.add({ influencer_id: creatorId });
     } catch (err) {
       setError(err?.message || 'Unable to shortlist this creator.');

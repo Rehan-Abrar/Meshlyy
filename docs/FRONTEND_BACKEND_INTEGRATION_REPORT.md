@@ -2,164 +2,145 @@
 
 Date: 2026-04-13
 Project: Meshlyy MVP
-Pass type: Full integration and reconciliation pass
+Pass type: Backend-docs reconciliation + integration hardening
 
-## Assumptions Applied
-1. The requested `docs/backend flow` folder was not available in the workspace. Backend route/service implementation was treated as source of truth.
-2. Where backend did not expose a required endpoint, frontend behavior was made graceful and non-breaking.
-3. Existing UI visual language was preserved unless a functional change was necessary.
-
----
-
-## 1) Integration Summary
-This pass moved the application from mock-dominant screens to real API-backed workflows for core brand and influencer journeys. Frontend now uses the centralized API layer for creator discovery, creator detail, campaign creation, shortlist management, invitation feed/detail actions, and matched campaign applications.
-
-Auth/session behavior was upgraded to support:
-- Supabase-based auth when configured
-- Demo token fallback for MVP workflows where backend auth endpoints are absent
-- Persistent session storage and unauthorized-session reset handling
-
-Admin area was included and stabilized for current backend reality:
-- Existing admin route remains functional
-- Dead admin navigation links were removed
-- Missing backend moderation APIs are fully documented in `docs/BACKEND_GAP_REPORT.md`
+## What Changed in This Update
+This update specifically re-validated integration against the attached backend docs folder (`Backend/docs`) and then fixed the two most visible runtime issues:
+1. AI instability/failure behavior
+2. Shortlist showing non-user-specific seeded data in demo auth mode
 
 ---
 
-## 2) Feature to Endpoint Mapping and Status
-
-| Frontend Feature | Frontend Route | Backend Endpoint(s) | Auth | Status |
-|---|---|---|---|---|
-| Login/session bootstrap | `/login` | Supabase auth + token used for backend | Public -> Auth | Connected (hybrid Supabase/demo token mode) |
-| Brand signup + onboarding | `/signup/brand` | `POST /v1/onboarding/brand` | BRAND | Connected |
-| Influencer signup + onboarding steps | `/signup/influencer` | `POST /v1/onboarding/influencer/step1..4`, `POST /complete` | INFLUENCER | Connected |
-| Brand dashboard cards and campaign mini-list | `/brand/dashboard` | `GET /v1/campaigns`, `GET /v1/creators` | BRAND | Connected |
-| Brand dashboard AI quick suggest | `/brand/dashboard` | `POST /v1/ai/brief` | BRAND | Connected |
-| Discovery search | `/brand/search` | `GET /v1/creators` | BRAND | Connected |
-| Creator detail | `/brand/creator/:id` | `GET /v1/creators/:id` | BRAND | Connected |
-| Add to shortlist from search/detail | Brand screens | `POST /v1/shortlists` | BRAND | Connected |
-| Campaign builder launch | `/brand/campaigns/new` | `POST /v1/campaigns` | BRAND | Connected |
-| Shortlist list/remove/invite | `/brand/shortlist` | `GET /v1/shortlists`, `DELETE /v1/shortlists/:id`, `POST /v1/collaborations/invite` | BRAND | Connected |
-| Brand AI assistant | `/brand/ai-assistant` | `POST /v1/ai/brief`, `POST /v1/ai/strategy`, `POST /v1/ai/fit-score` | BRAND | Connected |
-| Influencer invitations feed | `/influencer/invitations` | `GET /v1/collaborations/incoming` | INFLUENCER | Connected |
-| Invitation detail accept/decline | `/influencer/invitations/:id` | `PATCH /v1/collaborations/:id/status` (+ list fallback lookup) | INFLUENCER | Connected (detail fetch fallback due missing GET by id route) |
-| Influencer matched campaigns | `/influencer/campaigns` | `GET /v1/campaigns/matched`, `POST /v1/collaborations/apply` | INFLUENCER | Connected |
-| Influencer AI assistant | `/influencer/ai-assistant` | No influencer-authorized AI endpoint | INFLUENCER | Graceful fallback (documented backend gap) |
-| Admin verification queue | `/admin/queue` | No admin moderation endpoint | ADMIN | Graceful local mode (documented backend gap) |
+## 1) Backend Docs Reviewed
+Reviewed and reconciled against:
+- `Backend/docs/auth.md`
+- `Backend/docs/collaboration.md`
+- `Backend/docs/phase2-summary.md`
+- `Backend/docs/phase4-summary.md`
+- `Backend/docs/phase4-checklist.md`
+- `Backend/docs/gemini-request.md`
+- `Backend/docs/PHASE_0_SUMMARY.md`
+- `Backend/docs/PHASE_0_VERIFICATION.md`
+- `Backend/docs/query-analysis.md`
 
 ---
 
-## 3) Frontend Completion Added for Backend-Supported Features
+## 2) Frontend Fixes Implemented in This Pass
 
-Implemented in this pass:
-- Real discovery query mapping (including snake_case backend params)
-- Real creator detail fetch and rate-card rendering
-- Campaign creation flow wired to backend with visibility support
-- Shortlist CRUD wiring and invite action wiring
-- Influencer invitation feed and decisioning wired
-- Matched campaign browsing and apply action wired
-- Brand AI assistant connected to backend AI tools with mode controls
-- Brand dashboard campaign and creator data wired
+### A) Shortlist correctness fix
+Problem observed:
+- In demo auth mode (no Supabase keys), shortlist appeared to reflect seeded/shared backend data rather than the user’s own shortlisted selections.
 
----
+Fix implemented:
+- Added user-scoped demo shortlist persistence in local storage.
+- Brand shortlist actions now write/read from user-scoped local shortlist IDs when running with mock/demo token auth.
+- Removed reliance on backend shortlist list for demo mode.
 
-## 4) Frontend-only / Partially Supported Items Handed Off to Backend
-See complete details in `docs/BACKEND_GAP_REPORT.md`.
-
-Top unresolved backend dependencies:
-- Admin moderation APIs
-- Influencer AI content-brief authorization path
-- Invitation single-resource GET endpoint
-- Profile read/update endpoints
-- Rich brand identity in invitation payloads
-
----
-
-## 5) Admin Functionality Status
-Working now:
-- `/admin/queue` route loads and functions without dead nav links
-- Queue actions are explicitly labeled as local mode (non-persistent)
-
-Blocked by backend:
-- Fetching real queue data
-- Persisting approve/reject decisions
-- Audit trail retrieval
-
----
-
-## 6) API Readiness and Resilience Work Included
-- Loading states added for data-fetching screens
-- Error state rendering added for all newly wired API calls
-- Empty states added where lists can be empty
-- Basic validation added in signup and campaign flows
-- Password confirmation validation added in brand signup
-- Unauthorized-session event handling added to auth context
-- Session persistence added via local storage
-- Fallback behavior added where backend coverage is missing
-
----
-
-## 7) Files Created / Modified
-
-Created:
-- `Frontend/src/services/authSession.js`
-- `docs/BACKEND_GAP_REPORT.md`
-- `docs/FRONTEND_BACKEND_INTEGRATION_REPORT.md`
-
-Modified:
-- `Frontend/src/services/supabase.js`
-- `Frontend/src/services/api.js`
-- `Frontend/src/context/AuthContext.jsx`
-- `Frontend/src/features/public/BrandSignupForm.jsx`
-- `Frontend/src/features/public/InfluencerSignupForm.jsx`
+Files:
+- `Frontend/src/services/demoData.js` (new)
+- `Frontend/src/features/brand/BrandDashboard.jsx`
 - `Frontend/src/features/brand/DiscoverySearch.jsx`
 - `Frontend/src/features/brand/CreatorDetailPage.jsx`
-- `Frontend/src/features/brand/BrandDashboard.jsx`
-- `Frontend/src/features/brand/CampaignBuilder.jsx`
-- `Frontend/src/features/brand/BrandAIAssistant.jsx`
 - `Frontend/src/features/brand/Shortlist.jsx`
-- `Frontend/src/features/influencer/CampaignFeed.jsx`
-- `Frontend/src/features/influencer/InvitationDetail.jsx`
-- `Frontend/src/features/influencer/PublicCampaigns.jsx`
-- `Frontend/src/features/influencer/AIContentAssistant.jsx`
-- `Frontend/src/features/admin/VerificationQueue.jsx`
-- `Frontend/src/components/layout/Sidebar.jsx`
+
+Result:
+- Shortlist now reflects actual user-selected creators in demo mode.
+- Remove action works against local shortlist entries in demo mode.
+
+### B) AI resilience fix
+Problem observed:
+- Brand AI behavior degraded badly when backend AI endpoint failed.
+
+Fix implemented:
+- Added local fallback response generation for AI assistant modes (`brief`, `strategy`, `fit-score`).
+- Added fallback guidance in dashboard “Quick Suggest” on backend AI failures.
+
+Files:
+- `Frontend/src/features/brand/BrandAIAssistant.jsx`
+- `Frontend/src/features/brand/BrandDashboard.jsx`
+
+Result:
+- Users always receive a meaningful strategy response even when live AI call fails.
+
+### C) Onboarding contract compatibility hardening
+Problem observed:
+- Backend docs and implementation differ on whether influencer step 4 completes onboarding.
+
+Fix implemented:
+- Frontend influencer signup now supports both patterns:
+  - step4 + explicit `/complete`
+  - step4 already-complete semantics (graceful tolerance)
+
+File:
+- `Frontend/src/features/public/InfluencerSignupForm.jsx`
 
 ---
 
-## 8) Verification Log
+## 3) Current Frontend-Backend Integration Status
 
+| Flow | Status | Notes |
+|---|---|---|
+| Brand discovery + creator detail | Connected | Uses live `/v1/creators` and `/v1/creators/:id` |
+| Campaign create/list/matched | Connected | Uses `/v1/campaigns*` endpoints |
+| Shortlist add/list/remove/invite | Connected with mode-aware behavior | Live backend in full auth; user-scoped local fallback in demo auth |
+| Influencer invitations + status update | Connected | Uses `/v1/collaborations/incoming` and `/:id/status` |
+| Brand AI assistant | Connected with resilience fallback | Live AI first; fallback guidance on error |
+| Influencer AI assistant | Partial (fallback mode) | Backend role support gap remains |
+| Admin verification queue | Partial (local mode) | Backend moderation APIs still missing |
+
+---
+
+## 4) Key Differences Found (Docs vs Backend Code)
+
+1. Collaboration clarification state:
+- Docs include `CLARIFICATION_REQUESTED`.
+- Route schema currently accepts only `ACCEPTED | DECLINED`.
+
+2. Influencer onboarding step 4 behavior:
+- Docs suggest step 4 triggers ingest completion.
+- Implementation requires explicit `/v1/onboarding/influencer/complete`.
+
+3. Resubmission policy:
+- Docs state 7-day cooldown, max 3 attempts.
+- Current service logic uses 24-hour cooldown, max 5 attempts.
+
+4. Health payload examples:
+- Some docs reference `{ status, timestamp }`.
+- Current health route returns `{ ok: true }`.
+
+These differences are now documented in `docs/BACKEND_GAP_REPORT.md` under documentation/implementation drift.
+
+---
+
+## 5) Reports Updated
+- `docs/BACKEND_GAP_REPORT.md` updated with:
+  - Product-critical backend gaps
+  - Docs-vs-implementation drift section
+  - Updated priorities and delivery order
+- `docs/FRONTEND_BACKEND_INTEGRATION_REPORT.md` updated (this file)
+
+---
+
+## 6) Verification Run (Post-fix)
 Frontend:
-- Lint: passed (`npm run lint`)
-- Build: passed (`npm run build`)
+- Lint: passed
+- Build: passed
 
-Backend:
-- Build: failed due existing backend TypeScript errors unrelated to this frontend integration pass (ownership/error typing and verify script import extension issues)
-- Tests: failed in integration suite because required backend environment variables are not configured in this local environment
-
-Manual route-level sanity:
-- Performed by code-level verification and compile checks
-- Browser automation/manual click-through not executed in this pass (no running fullstack env with required backend secrets)
+Command results:
+- `npm run lint` (Frontend) ✅
+- `npm run build` (Frontend) ✅
 
 ---
 
-## 9) Mismatches Resolved
-- Frontend mock arrays replaced with backend responses in brand/influencer core flows
-- Discovery filter query shape aligned to backend snake_case contract
-- Backend AI contract usage corrected by mode-specific payloads
-- Admin dead links removed from sidebar navigation
-- Session handling normalized across API usage
+## 7) Remaining Blocking Backend Work
+1. Admin moderation endpoints
+2. Influencer-authorized AI endpoint
+3. `GET /v1/collaborations/:id`
+4. Profile read/update endpoints
+5. Resolve docs/implementation drifts listed above
 
 ---
 
-## 10) Remaining Risks
-1. Admin workflows remain non-persistent until backend moderation routes are implemented.
-2. Influencer AI assistant remains local fallback until backend authorizes/supports influencer path.
-3. Hybrid auth mode (Supabase + demo token fallback) is MVP-practical but should be unified before production launch.
-4. Backend project currently has independent build/test blockers and missing env for integration tests.
-
----
-
-## 11) Verdict
-- MVP ready for demo: Yes, with documented backend-gap constraints (especially admin and influencer AI backend coverage)
-- MVP ready for deployment: Not yet; backend build/test/env and admin API gaps should be completed first
+## 8) Practical MVP Readiness Statement
+- Demo readiness: Improved and stable for brand flows, including shortlist and AI fallback behavior.
+- Deployment readiness: Still blocked by backend API gaps and docs-contract drift items listed above.

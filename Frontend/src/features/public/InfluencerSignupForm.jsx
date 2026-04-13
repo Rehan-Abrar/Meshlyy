@@ -109,7 +109,18 @@ const InfluencerSignupForm = () => {
         ],
       });
 
-      await onboardingApi.influencerComplete();
+      // Support both backend contracts:
+      // - Older docs: step4 may trigger ingest completion directly
+      // - Current implementation: explicit /complete endpoint required
+      try {
+        await onboardingApi.influencerComplete();
+      } catch (completeErr) {
+        // If backend already completed after step4, continue without blocking signup.
+        if (completeErr?.status !== 404 && completeErr?.status !== 409) {
+          throw completeErr;
+        }
+      }
+
       navigate('/influencer/dashboard');
     } catch (error) {
       setErrors({ form: error?.message || 'Signup worked, but onboarding is incomplete. Please continue from your dashboard.' });

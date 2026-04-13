@@ -5,6 +5,7 @@ import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
 import CircularProgress from '../../components/common/CircularProgress';
 import { creatorsApi, shortlistsApi } from '../../services/api';
+import { addDemoShortlistId, isDemoAuthMode } from '../../services/demoData';
 import styles from './CreatorDetailPage.module.css';
 
 const formatNumber = (num) => {
@@ -81,6 +82,11 @@ const CreatorDetailPage = () => {
     setSaving(true);
     setError('');
     try {
+      if (isDemoAuthMode()) {
+        addDemoShortlistId(c.id);
+        return;
+      }
+
       await shortlistsApi.add({ influencer_id: c.id });
     } catch (err) {
       setError(err?.message || 'Unable to add creator to shortlist.');

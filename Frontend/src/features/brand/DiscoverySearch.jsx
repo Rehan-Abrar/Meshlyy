@@ -7,6 +7,7 @@ import CircularProgress from '../../components/common/CircularProgress';
 import Select from '../../components/common/Select';
 import Badge from '../../components/common/Badge';
 import { creatorsApi, shortlistsApi } from '../../services/api';
+import { addDemoShortlistId, isDemoAuthMode } from '../../services/demoData';
 import styles from './DiscoverySearch.module.css';
 
 const NICHES = ['All', 'Lifestyle', 'Tech', 'Fitness', 'Finance', 'Fashion', 'Gaming', 'Beauty'];
@@ -175,6 +176,11 @@ const DiscoverySearch = () => {
   const handleShortlist = async (creatorId) => {
     setShortlistingId(creatorId);
     try {
+      if (isDemoAuthMode()) {
+        addDemoShortlistId(creatorId);
+        return;
+      }
+
       await shortlistsApi.add({ influencer_id: creatorId });
       await loadCreators();
     } catch (err) {

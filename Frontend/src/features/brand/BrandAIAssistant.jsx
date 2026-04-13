@@ -9,6 +9,20 @@ const INITIAL_MESSAGES = [
   { role: 'assistant', text: "Hello! I'm your Meshlyy Brand Co-pilot. How can I help you scale your creator marketing today?" },
 ];
 
+const localFallbackReply = (mode, prompt) => {
+  const base = prompt?.slice(0, 120) || 'your campaign';
+
+  if (mode === 'strategy') {
+    return `Fallback strategy for ${base}: prioritize creators with >4% engagement, shortlist 5 profiles across 2 niches, then run a 7-day test wave before scaling.`;
+  }
+
+  if (mode === 'fit-score') {
+    return `Fallback fit assessment for ${base}: provisional fit score 78/100. Strengths: niche alignment and engagement potential. Risks: audience overlap uncertainty and unclear conversion intent.`;
+  }
+
+  return `Fallback brief for ${base}: define one KPI, one audience segment, and one hero content format. Launch with 3 creators, review performance after 72 hours, then optimize messaging.`;
+};
+
 const BrandAIAssistant = () => {
   const { user } = useAuth();
   const [messages, setMessages] = useState(INITIAL_MESSAGES);
@@ -89,9 +103,9 @@ const BrandAIAssistant = () => {
 
       setMessages(prev => [...prev, { role: 'assistant', text: responseText }]);
     } catch (err) {
-      const msg = err?.message || 'AI request failed. Please retry.';
+      const msg = `${err?.message || 'Live AI request failed.'} Showing local fallback guidance.`;
       setError(msg);
-      setMessages(prev => [...prev, { role: 'assistant', text: msg }]);
+      setMessages(prev => [...prev, { role: 'assistant', text: `${msg}\n\n${localFallbackReply(mode, userMsg.text)}` }]);
     } finally {
       setIsTyping(false);
     }

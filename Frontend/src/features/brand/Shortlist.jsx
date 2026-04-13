@@ -3,7 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
-import { campaignsApi, collaborationsApi, shortlistsApi } from '../../services/api';
+import { campaignsApi, collaborationsApi, creatorsApi, shortlistsApi } from '../../services/api';
+import {
+  getDemoShortlistIds,
+  isDemoAuthMode,
+  removeDemoShortlistId,
+} from '../../services/demoData';
 import styles from './Shortlist.module.css';
 
 const Shortlist = () => {
@@ -19,6 +24,40 @@ const Shortlist = () => {
     setLoading(true);
     setError('');
     try {
+      if (isDemoAuthMode()) {
+        const [campaignResult, localIds] = await Promise.all([
+          campaignsApi.list({ page: 1, limit: 50 }),
+          Promise.resolve(getDemoShortlistIds()),
+        ]);
+
+        setCampaigns(campaignResult?.data || []);
+
+        const details = await Promise.all(
+          localIds.map(async (influencerId) => {
+            try {
+              const detail = await creatorsApi.getDetail(influencerId);
+              return {
+                id: `demo-${influencerId}`,
+                influencer_id: influencerId,
+                campaign_id: null,
+                influencer: {
+                  id: detail.id,
+                  ig_handle: detail.ig_handle,
+                  niche_primary: detail.niche_primary,
+                  influencer_stats: detail.influencer_stats,
+                },
+              };
+            } catch {
+              return null;
+            }
+          })
+        );
+
+        setItems(details.filter(Boolean));
+        setLoading(false);
+        return;
+      }
+
       const [shortlistResult, campaignResult] = await Promise.all([
         shortlistsApi.list(campaignId || undefined),
         campaignsApi.list({ page: 1, limit: 50 }),
@@ -62,6 +101,12 @@ const Shortlist = () => {
     setProcessingId(id);
     setError('');
     try {
+      if (isDemoAuthMode() && String(id).startsWith('demo-')) {
+        removeDemoShortlistId(String(id).replace('demo-', ''));
+        setItems((current) => current.filter((item) => item.id !== id));
+        return;
+      }
+
       await shortlistsApi.remove(id);
       setItems((current) => current.filter((item) => item.id !== id));
     } catch (err) {
@@ -72,6 +117,11 @@ const Shortlist = () => {
   };
 
   const handleInvite = async (item) => {
+    if (isDemoAuthMode()) {
+      setError('Invites in demo auth mode require full Supabase backend auth.');
+      return;
+    }
+
     if (!selectedCampaign) {
       setError('Please select a campaign before inviting creators.');
       return;
