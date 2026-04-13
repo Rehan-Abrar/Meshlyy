@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
 import { campaignsApi, collaborationsApi } from '../../services/api';
+import { isDemoAuthMode } from '../../services/demoData';
+import { getVisibleDemoCampaigns } from '../../services/demoCampaigns';
 import styles from './CampaignFeed.module.css';
 
 const CampaignItem = ({ campaign, onApply, applying }) => (
@@ -41,6 +43,22 @@ const PublicCampaigns = () => {
       setLoading(true);
       setError('');
       try {
+        if (isDemoAuthMode()) {
+          const demoCampaigns = getVisibleDemoCampaigns().map((item) => ({
+            id: item.id,
+            brand: 'Brand Campaign',
+            logo: 'BR',
+            campaign: item.title,
+            brief: item.brief_preview || 'No brief preview available.',
+            budget: `${item.currency || 'USD'} ${Number(item.budget || 0).toLocaleString()}`,
+            deadline: 'Open',
+            isNew: item.status === 'ACTIVE',
+          }));
+
+          setCampaigns(demoCampaigns);
+          return;
+        }
+
         const result = await campaignsApi.getMatched({ page: 1, limit: 25 });
         const mapped = (result?.data || []).map((item) => ({
           id: item.id,

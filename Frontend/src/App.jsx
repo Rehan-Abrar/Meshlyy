@@ -13,6 +13,7 @@ import BrandDashboard from './features/brand/BrandDashboard';
 import DiscoverySearch from './features/brand/DiscoverySearch';
 import CreatorDetailPage from './features/brand/CreatorDetailPage';
 import CampaignBuilder from './features/brand/CampaignBuilder';
+import BrandCampaigns from './features/brand/BrandCampaigns';
 import BrandAIAssistant from './features/brand/BrandAIAssistant';
 import Shortlist from './features/brand/Shortlist';
 
@@ -57,6 +58,9 @@ const App = () => (
       } />
       <Route path="/brand/campaigns/new" element={
         <ProtectedRoute allowedRole="brand"><CampaignBuilder /></ProtectedRoute>
+      } />
+      <Route path="/brand/campaigns" element={
+        <ProtectedRoute allowedRole="brand"><BrandCampaigns /></ProtectedRoute>
       } />
       <Route path="/brand/shortlist" element={
         <ProtectedRoute allowedRole="brand"><Shortlist /></ProtectedRoute>

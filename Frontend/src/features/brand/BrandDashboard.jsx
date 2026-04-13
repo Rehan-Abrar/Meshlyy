@@ -8,6 +8,7 @@ import Badge from '../../components/common/Badge';
 import Input from '../../components/common/Input';
 import { aiApi, campaignsApi, creatorsApi, shortlistsApi } from '../../services/api';
 import { addDemoShortlistId, isDemoAuthMode } from '../../services/demoData';
+import { getDemoCampaigns } from '../../services/demoCampaigns';
 import styles from './BrandDashboard.module.css';
 
 const formatNumber = (num) => {
@@ -114,7 +115,13 @@ const BrandDashboard = () => {
           creatorsApi.discover({ page: 1, limit: 4 }),
         ]);
 
-        setCampaigns(campaignResult?.data || []);
+        const apiCampaigns = campaignResult?.data || [];
+        const demoCampaigns = isDemoAuthMode() ? getDemoCampaigns() : [];
+        const mergedCampaigns = [...demoCampaigns, ...apiCampaigns].filter((campaign, index, self) => {
+          return index === self.findIndex((item) => item.id === campaign.id || item.title === campaign.title);
+        });
+
+        setCampaigns(mergedCampaigns);
         setCreators((creatorResult?.data || []).map((creator) => {
           const followers = creator.follower_count || 0;
           const engagement = creator.engagement_rate || 0;
@@ -295,7 +302,7 @@ const BrandDashboard = () => {
                 <p className={styles.miniMeta}>Budget: ${formatNumber(Number(campaign.budget) || 0)}</p>
               </Card>
             ))}
-            <Link to="/brand/campaigns/new" className={styles.viewAllLink}>View all campaigns →</Link>
+            <Link to="/brand/campaigns" className={styles.viewAllLink}>View all campaigns →</Link>
           </div>
         </section>
       </div>

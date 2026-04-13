@@ -1,0 +1,95 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1rem;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.8rem, 2.3vw, 2.6rem);
+  color: var(--color-on-surface);
+}
+
+.subtitle {
+  margin: 0.35rem 0 0;
+  color: var(--color-on-surface-variant);
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.summaryCard {
+  padding: 1rem;
+}
+
+.summaryValue {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-on-surface);
+}
+
+.summaryLabel {
+  margin: 0.25rem 0 0;
+  color: var(--color-on-surface-variant);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  padding: 1rem;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--color-on-surface);
+}
+
+.cardMeta {
+  margin: 0.35rem 0 0;
+  color: var(--color-on-surface-variant);
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.emptyState {
+  padding: 2rem;
+  text-align: center;
+  border-radius: 20px;
+  border: 1px dashed var(--glass-border);
+  color: var(--color-on-surface-variant);
+}
+
+@media (max-width: 768px) {
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+}

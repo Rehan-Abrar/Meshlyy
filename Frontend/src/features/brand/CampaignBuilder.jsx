@@ -4,6 +4,8 @@ import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Card from '../../components/common/Card';
 import { campaignsApi } from '../../services/api';
+import { isDemoAuthMode } from '../../services/demoData';
+import { upsertDemoCampaign } from '../../services/demoCampaigns';
 import styles from './CampaignBuilder.module.css';
 
 const STEPS = ['Campaign Brief', 'Objectives', 'Budget & Timeline'];
@@ -87,6 +89,29 @@ const CampaignBuilder = () => {
 
     setSaving(true);
     try {
+      if (isDemoAuthMode()) {
+        upsertDemoCampaign({
+          title: form.name,
+          brief_preview: form.brief,
+          brief_data: {
+            brand: form.brand,
+            targetAudience: form.target,
+            kpi: form.kpi,
+            startDate: form.startDate,
+            endDate: form.endDate,
+            creators: form.creators,
+          },
+          budget: Number(form.budget) || 0,
+          currency: 'USD',
+          niche_targets: form.target ? [form.target] : [],
+          visibility: form.visibility || 'MATCHED',
+          status: 'ACTIVE',
+        });
+
+        navigate('/brand/dashboard');
+        return;
+      }
+
       await campaignsApi.create({
         title: form.name,
         briefPreview: form.brief,
@@ -106,6 +131,29 @@ const CampaignBuilder = () => {
 
       navigate('/brand/dashboard');
     } catch (err) {
+      if (isDemoAuthMode()) {
+        upsertDemoCampaign({
+          title: form.name,
+          brief_preview: form.brief,
+          brief_data: {
+            brand: form.brand,
+            targetAudience: form.target,
+            kpi: form.kpi,
+            startDate: form.startDate,
+            endDate: form.endDate,
+            creators: form.creators,
+          },
+          budget: Number(form.budget) || 0,
+          currency: 'USD',
+          niche_targets: form.target ? [form.target] : [],
+          visibility: form.visibility || 'MATCHED',
+          status: 'ACTIVE',
+        });
+
+        navigate('/brand/dashboard');
+        return;
+      }
+
       setError(err?.message || 'Unable to launch campaign.');
     } finally {
       setSaving(false);
@@ -135,7 +183,7 @@ const CampaignBuilder = () => {
       <div className={styles.navRow}>
         <Button variant="secondary" disabled={step === 0} onClick={() => setStep(s => s - 1)}>← Back</Button>
         {step < STEPS.length - 1
-          ? <Button variant="primary" onClick={() => setStep(s => s + 1)}>Next →</Button>
+          ? <Button variant="primary" onClick={() => setStep(s => Math.min(s + 1, STEPS.length - 1))}>Next →</Button>
           : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
               <Button variant="primary" onClick={handleLaunch} disabled={saving}>{saving ? 'Launching...' : 'Launch Campaign'}</Button>
