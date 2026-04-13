@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Select from '../../components/common/Select';
+import { onboardingApi } from '../../services/api';
 import styles from './BrandSignupForm.module.css';
 import logo from '../../assets/logo.png';
 
@@ -24,7 +25,7 @@ const PAK_PROVINCES = ['Punjab', 'Sindh', 'Khyber Pakhtunkhwa', 'Balochistan', '
 const Field = ({ id, label, children, required }) => (
   <div className={styles.fieldGroup}>
     <label htmlFor={id} className={styles.fieldLabel}>
-      {label} {required && <span style={{color: 'var(--color-primary)'}}>*</span>}
+      {label} {required && <span className={styles.required}>*</span>}
     </label>
     {children}
   </div>
@@ -34,6 +35,7 @@ const BrandSignupForm = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState('');
 
   // States (using a single form object for simplicity in this large form)
   const [form, setForm] = useState({
@@ -68,27 +70,70 @@ const BrandSignupForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError('');
     
     // Strict Validation Check
     if (!form.fullName || !form.workEmail || !form.password || !form.confirmPassword || !form.brandName || !form.industry) {
-      alert('Please fill out all required fields marked with an asterisk (*).');
+      setFormError('Please fill out all required fields marked with an asterisk (*).');
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      setFormError('Password and confirmation do not match.');
       return;
     }
     
     if (!form.agreedTerms || !form.agreedConsent) {
-      alert('You must agree to the Terms and Consent.');
+      setFormError('You must agree to the Terms and Consent.');
       return;
     }
+
     setLoading(true);
-    // Mimic API logic
-    const payload = {
-      role: 'brand', email: form.workEmail, name: form.brandName,
-      company: form.companyName, industry: form.industry, budget: form.budget, website: form.website
-    };
-    const result = await login(payload);
-    if (result.success) navigate('/brand/dashboard');
-    else alert(result.error);
-    setLoading(false);
+
+    try {
+      const authResult = await login({
+        role: 'brand',
+        email: form.workEmail,
+        password: form.password,
+        name: form.fullName,
+        company: form.companyName || form.brandName,
+        industry: form.industry,
+      });
+
+      if (!authResult.success) {
+        setFormError(authResult.error || 'Unable to create account.');
+        return;
+      }
+
+      const rangeMap = {
+        '$1k - $5k': [1000, 5000],
+        '$5k - $10k': [5000, 10000],
+        '$10k - $25k': [10000, 25000],
+        '$25k+': [25000, 100000],
+      };
+      const [budgetRangeMin, budgetRangeMax] = rangeMap[form.budget] || [];
+
+      await onboardingApi.brandOnboard({
+        companyName: form.companyName || form.brandName,
+        website: form.website || undefined,
+        industry: form.industry || undefined,
+        targetDemographics: {
+          audienceLocation: form.audienceLocation || undefined,
+          targetAge: form.targetAge || undefined,
+          language: form.language || undefined,
+        },
+        budgetRangeMin,
+        budgetRangeMax,
+        toneVoice: form.about || undefined,
+        campaignGoals: form.goals.length ? form.goals : undefined,
+      });
+
+      navigate('/brand/dashboard');
+    } catch (error) {
+      setFormError(error?.message || 'Account created, but onboarding could not be saved yet. Please retry after login.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -102,6 +147,11 @@ const BrandSignupForm = () => {
       </div>
 
       <form className={styles.formContainer} onSubmit={handleSubmit}>
+        {formError && (
+          <div className={styles.footerNote} style={{ color: 'var(--color-error)' }} role="alert">
+            {formError}
+          </div>
+        )}
         
         {/* Basic Account Info */}
         <div className={styles.sectionCard}>
@@ -173,7 +223,7 @@ const BrandSignupForm = () => {
             <textarea name="about" className={styles.textarea} placeholder="Tell us about your brand mission..." value={form.about} onChange={handleChange} />
           </div>
           <div className={`${styles.fieldGroup} ${styles.mt-4}`}>
-            <label className={styles.fieldLabel}>Brand Logo <span style={{color: 'var(--color-primary)'}}>*</span></label>
+            <label className={styles.fieldLabel}>Brand Logo <span className={styles.required}>*</span></label>
             <div className={styles.uploadBox}>
               <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem', opacity: 0.5 }}>+</div>
               <div className={styles.uploadText}>Click to upload or drag and drop</div>
@@ -252,7 +302,7 @@ const BrandSignupForm = () => {
               <div className={styles.toggleLabel}>Registered Business?</div>
               <div className={styles.toggleSub}>Confirm if your company is legally incorporated.</div>
             </div>
-            <input type="checkbox" name="registeredBusiness" checked={form.registeredBusiness} onChange={handleChange} style={{ width: '2rem', height: '2rem' }} />
+            <input type="checkbox" name="registeredBusiness" checked={form.registeredBusiness} onChange={handleChange} className={styles.toggleInput} />
           </div>
           <div className={`${styles.fieldGroup} ${styles.mt-4}`}>
             <label className={styles.fieldLabel}>Tax Registration #</label>
@@ -287,7 +337,10 @@ const BrandSignupForm = () => {
           <label className={styles.checkboxRow}>
             <input type="checkbox" name="agreedTerms" checked={form.agreedTerms} onChange={handleChange} required />
             <span className={styles.checkboxText}>
-              I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+              I agree to the{' '}
+              <a href="#terms" className={styles.link} target="_blank" rel="noreferrer">Terms of Service</a>
+              {' '}and{' '}
+              <a href="#privacy" className={styles.link} target="_blank" rel="noreferrer">Privacy Policy</a>
             </span>
           </label>
           <label className={styles.checkboxRow}>

@@ -1,14 +1,14 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
+import { collaborationsApi } from '../../services/api';
 import styles from './CampaignFeed.module.css';
 
-const OFFERS = [
-  { id:1, brand:'NovaSkin',  logo:'NS', campaign:'Summer Glow Collection',  brief:'Share your summer skincare routine with our new SPF line.',     budget:'$2,400', deadline:'Apr 30, 2025', match:94 },
-  { id:2, brand:'FitFuel',   logo:'FF', campaign:'Protein Launch Campaign', brief:'Create a post showcasing our new protein flavors post-workout.', budget:'$1,800', deadline:'May 15, 2025', match:88 },
-  { id:3, brand:'TechTrend', logo:'TT', campaign:'Q3 Laptop Awareness',     brief:'YouTube review of the new Zenith Pro laptop (unit provided).',   budget:'$3,200', deadline:'May 1, 2025',  match:81 },
-  { id:4, brand:'GrowthWell',logo:'GW', campaign:'Daily Wellness Series',   brief:'3-week micro-series on holistic wellness and our supplement.',    budget:'$4,800', deadline:'May 20, 2025', match:77 },
-];
+const formatMoney = (budget, currency) => {
+  if (!Number.isFinite(Number(budget))) return 'Budget not specified';
+  return `${currency || 'USD'} ${Number(budget).toLocaleString()}`;
+};
 
 const OfferItem = ({ offer }) => (
   <div className={styles.card}>
@@ -29,27 +29,73 @@ const OfferItem = ({ offer }) => (
     
     <div className={styles.cardFooter}>
       <span className={styles.offerDeadline}>📅 Deadline: {offer.deadline}</span>
-      <Link to={`/influencer/invitations/${offer.id}`}>
+      <Link to={`/influencer/invitations/${offer.id}`} state={{ offer }}>
         <Button variant="primary" size="sm">Review Offer</Button>
       </Link>
     </div>
   </div>
 );
 
-const CampaignFeed = () => (
-  <div className={styles.page}>
-    <div className={styles.header}>
-      <div>
-        <h1 className={styles.title}>Direct Invitations</h1>
-        <p className={styles.sub}>Exclusive brand offers matched directly to your profile. No cold pitching needed.</p>
+const CampaignFeed = () => {
+  const [offers, setOffers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const loadOffers = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const result = await collaborationsApi.getIncoming();
+        const mapped = (result?.data || []).map((item) => {
+          const campaign = item.campaign || {};
+          return {
+            id: item.id,
+            brand: 'Brand Invite',
+            logo: 'BR',
+            campaign: campaign.title || 'Campaign Invite',
+            brief: campaign.brief_preview || item.message || 'You have received a collaboration invite.',
+            budget: formatMoney(campaign.budget, campaign.currency),
+            deadline: 'Open',
+            match: 80,
+            campaignId: campaign.id,
+            status: item.status,
+          };
+        });
+        setOffers(mapped);
+      } catch (err) {
+        setOffers([]);
+        setError(err?.message || 'Unable to load invitations right now.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadOffers();
+  }, []);
+
+  return (
+    <div className={styles.page}>
+      <div className={styles.header}>
+        <div>
+          <h1 className={styles.title}>Direct Invitations</h1>
+          <p className={styles.sub}>Exclusive brand offers matched directly to your profile. No cold pitching needed.</p>
+        </div>
       </div>
+      {error && <p role="alert">{error}</p>}
+      {loading ? (
+        <div className={styles.feedGrid}><p>Loading invitations...</p></div>
+      ) : (
+        <div className={styles.feedGrid}>
+          {offers.length === 0 ? (
+            <div className={styles.card}><p>No invitations yet. Check back soon.</p></div>
+          ) : offers.map(o => (
+            <OfferItem key={o.id} offer={o} />
+          ))}
+        </div>
+      )}
     </div>
-    <div className={styles.feedGrid}>
-      {OFFERS.map(o => (
-        <OfferItem key={o.id} offer={o} />
-      ))}
-    </div>
-  </div>
-);
+  );
+};
 
 export default CampaignFeed;

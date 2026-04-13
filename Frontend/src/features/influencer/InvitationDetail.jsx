@@ -1,24 +1,82 @@
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
+import { collaborationsApi } from '../../services/api';
 import styles from './InvitationDetail.module.css';
-
-// Mock data — replace with `GET /api/v1/campaigns/:id`
-const OFFERS = {
-  1: { id:1, brand:'NovaSkin',  logo:'NS', campaign:'Summer Glow Collection',  brief:'Share your summer skincare routine with our new SPF line. We are looking for authentic, lifestyle-driven content that integrates the product naturally into your daily routine.', budget:'$2,400', deadline:'Apr 30, 2025', match:94, deliverables:['1× Instagram Reel (30–60s)','2× Story sets with swipe-up','Usage rights: 6 months'], timeline:'3 weeks', category:'Beauty & Skincare' },
-  2: { id:2, brand:'FitFuel',   logo:'FF', campaign:'Protein Launch Campaign', brief:'Create a post showcasing our new protein flavors post-workout. Authentic gym footage preferred.', budget:'$1,800', deadline:'May 15, 2025', match:88, deliverables:['1× Feed post','1× Story × 3 frames'], timeline:'2 weeks', category:'Fitness & Health' },
-  3: { id:3, brand:'TechTrend', logo:'TT', campaign:'Q3 Laptop Awareness',     brief:'YouTube review of the new Zenith Pro laptop. Unit provided upon contract signing.', budget:'$3,200', deadline:'May 1, 2025',  match:81, deliverables:['1× Full review post','Mention in bio for 30 days'], timeline:'4 weeks', category:'Technology' },
-  4: { id:4, brand:'GrowthWell',logo:'GW', campaign:'Daily Wellness Series',   brief:'3-week micro-series on holistic wellness featuring our supplement line.', budget:'$4,800', deadline:'May 20, 2025', match:77, deliverables:['3× Reels over 3 weeks','1× Feed post','Bio link 30 days'], timeline:'3 weeks', category:'Wellness' },
-};
 
 const InvitationDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const offer = OFFERS[id];
+  const location = useLocation();
+  const [offer, setOffer] = useState(location.state?.offer || null);
+  const [loading, setLoading] = useState(!location.state?.offer);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const loadOffer = async () => {
+      if (!id || offer) return;
+      setLoading(true);
+      setError('');
+      try {
+        const result = await collaborationsApi.getIncoming();
+        const match = (result?.data || []).find((item) => item.id === id);
+        if (!match) {
+          setError('Offer not found.');
+          return;
+        }
+        const campaign = match.campaign || {};
+        setOffer({
+          id: match.id,
+          brand: 'Brand Invite',
+          logo: 'BR',
+          campaign: campaign.title || 'Campaign Invite',
+          brief: campaign.brief_preview || match.message || 'No brief was provided.',
+          budget: `${campaign.currency || 'USD'} ${Number(campaign.budget || 0).toLocaleString()}`,
+          deadline: 'Open',
+          match: 80,
+          deliverables: ['Deliverables will be finalized after acceptance.'],
+          timeline: 'TBD with brand',
+          category: 'Collaboration',
+        });
+      } catch (err) {
+        setError(err?.message || 'Unable to load invitation details.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadOffer();
+  }, [id, offer]);
+
+  const canRespond = useMemo(() => !!offer?.id, [offer]);
+
+  const handleStatus = async (status) => {
+    if (!canRespond) return;
+    setSaving(true);
+    setError('');
+    try {
+      await collaborationsApi.updateStatus(offer.id, status);
+      navigate('/influencer/invitations');
+    } catch (err) {
+      setError(err?.message || 'Unable to update invitation status.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className={styles.notFound}>
+        <p>Loading invitation...</p>
+      </div>
+    );
+  }
 
   if (!offer) return (
     <div className={styles.notFound}>
-      <p>Offer not found.</p>
+      <p>{error || 'Offer not found.'}</p>
       <Link to="/influencer/invitations"><Button variant="secondary">← Back to Feed</Button></Link>
     </div>
   );
@@ -68,13 +126,14 @@ const InvitationDetail = () => {
 
       {/* Actions */}
       <div className={styles.actions}>
-        <Button variant="primary" size="lg" onClick={() => { alert('Accepted! Brand will be notified.'); navigate('/influencer/invitations'); }}>
+        <Button variant="primary" size="lg" onClick={() => handleStatus('ACCEPTED')} disabled={saving}>
           Accept Offer
         </Button>
-        <Button variant="secondary" size="lg" onClick={() => navigate('/influencer/invitations')}>
+        <Button variant="secondary" size="lg" onClick={() => handleStatus('DECLINED')} disabled={saving}>
           Decline
         </Button>
       </div>
+      {error && <p role="alert">{error}</p>}
     </div>
   );
 };

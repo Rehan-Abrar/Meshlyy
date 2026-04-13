@@ -80,6 +80,9 @@ const AIContentAssistant = () => {
         <div>
           <h1 className={styles.title}>Lumina AI Assistant</h1>
           <p className={styles.subtitle}>Your personal content co-pilot</p>
+          <p className={styles.subtitle}>
+            Live backend content-brief generation is currently brand-role only, so this assistant runs in local guidance mode for influencers.
+          </p>
         </div>
         <button
           className={styles.clearBtn}

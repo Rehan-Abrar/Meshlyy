@@ -72,6 +72,7 @@ const VerificationQueue = () => {
           <span className="micro-label">Admin Panel</span>
           <h1 className={styles.title}>Verification Queue</h1>
           <p className={styles.sub}>{queue.length} creator{queue.length !== 1 ? 's' : ''} pending review</p>
+          <p className={styles.sub}>Backend moderation endpoints are pending; actions below run in local admin review mode.</p>
         </div>
         <Badge variant="admin">{queue.length} Pending</Badge>
       </div>

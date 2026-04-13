@@ -17,8 +17,6 @@ const NAV_ITEMS = {
   ],
   admin: [
     { path: '/admin/queue',    label: 'Review Queue' },
-    { path: '/admin/users',    label: 'Users' },
-    { path: '/admin/settings', label: 'Settings' },
   ],
 };
 

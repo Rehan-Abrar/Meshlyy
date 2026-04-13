@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import logo from '../../assets/logo.png';
 import Select from '../../components/common/Select';
+import { onboardingApi } from '../../services/api';
 import styles from './InfluencerSignupForm.module.css';
 
 const CREATOR_NICHES = [
@@ -55,6 +56,7 @@ const InfluencerSignupForm = () => {
     if (!formData.email.includes('@')) newErrors.email = 'Valid email is required';
     if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 chars';
     if (!formData.handle) newErrors.handle = 'Social handle is required';
+    if (!formData.bio) newErrors.bio = 'Bio is required';
     if (!formData.niche) newErrors.niche = 'Niche is required';
     if (!formData.audience) newErrors.audience = 'Audience size is required';
     if (!formData.verifiedConsent) newErrors.verifiedConsent = 'Please agree to the terms';
@@ -71,17 +73,47 @@ const InfluencerSignupForm = () => {
     }
 
     setLoading(true);
-    // Submit all data cleanly, ready for backend integration
-    const result = await login({
-      ...formData,
-      role: 'influencer',
-      name: formData.fullName
-    });
+    try {
+      const result = await login({
+        ...formData,
+        role: 'influencer',
+        name: formData.fullName,
+      });
 
-    if (result.success) {
+      if (!result.success) {
+        setErrors({ form: result.error });
+        return;
+      }
+
+      await onboardingApi.influencerStep1({
+        igHandle: formData.handle.replace(/^@/, ''),
+      });
+
+      await onboardingApi.influencerStep2({
+        nichePrimary: formData.niche,
+        bio: formData.bio || undefined,
+      });
+
+      await onboardingApi.influencerStep3({
+        portfolioUrl: undefined,
+        mediaKitUrl: undefined,
+      });
+
+      await onboardingApi.influencerStep4({
+        rateCards: [
+          {
+            serviceType: 'POST',
+            price: 100,
+            currency: 'USD',
+          },
+        ],
+      });
+
+      await onboardingApi.influencerComplete();
       navigate('/influencer/dashboard');
-    } else {
-      setErrors({ form: result.error });
+    } catch (error) {
+      setErrors({ form: error?.message || 'Signup worked, but onboarding is incomplete. Please continue from your dashboard.' });
+    } finally {
       setLoading(false);
     }
   };
@@ -107,7 +139,7 @@ const InfluencerSignupForm = () => {
           </div>
           <div className={styles.grid2}>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Full Name <span style={{color: 'var(--color-primary)'}}>*</span></label>
+              <label className={styles.fieldLabel}>Full Name <span className={styles.required}>*</span></label>
               <input
                 type="text"
                 className={styles.input}
@@ -119,7 +151,7 @@ const InfluencerSignupForm = () => {
               {errors.fullName && <span className={styles.fieldError}>{errors.fullName}</span>}
             </div>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Email Address <span style={{color: 'var(--color-primary)'}}>*</span></label>
+              <label className={styles.fieldLabel}>Email Address <span className={styles.required}>*</span></label>
               <input
                 type="email"
                 className={styles.input}
@@ -134,7 +166,7 @@ const InfluencerSignupForm = () => {
           
           <div className={styles.grid2} style={{ marginTop: '1.5rem' }}>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Password <span style={{color: 'var(--color-primary)'}}>*</span></label>
+              <label className={styles.fieldLabel}>Password <span className={styles.required}>*</span></label>
               <input
                 type="password"
                 className={styles.input}
@@ -158,7 +190,7 @@ const InfluencerSignupForm = () => {
           </div>
 
           <div className={styles.fieldGroup} style={{ marginTop: '1.5rem' }}>
-            <label className={styles.fieldLabel}>Identity / Gender Representation <span style={{color: 'var(--color-primary)'}}>*</span></label>
+            <label className={styles.fieldLabel}>Identity / Gender Representation <span className={styles.required}>*</span></label>
             <Select
               options={GENDERS}
               value={formData.gender}
@@ -180,7 +212,7 @@ const InfluencerSignupForm = () => {
              <div className={styles.uploadBox} style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--color-primary-variant)'}}></div>
                 <div>
-                   <div className={styles.uploadText} style={{ textAlign: 'left' }}>Upload Profile Picture <span style={{color: 'var(--color-primary)'}}>*</span></div>
+                   <div className={styles.uploadText} style={{ textAlign: 'left' }}>Upload Profile Picture <span className={styles.required}>*</span></div>
                    <div className={styles.uploadSub}>Show brands who you are</div>
                 </div>
              </div>
@@ -188,7 +220,7 @@ const InfluencerSignupForm = () => {
 
           <div className={styles.grid2}>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Primary Platform <span style={{color: 'var(--color-primary)'}}>*</span></label>
+              <label className={styles.fieldLabel}>Primary Platform <span className={styles.required}>*</span></label>
               <Select
                 options={PLATFORMS}
                 value={formData.platform}
@@ -198,7 +230,7 @@ const InfluencerSignupForm = () => {
               />
             </div>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Handle / Username <span style={{color: 'var(--color-primary)'}}>*</span></label>
+              <label className={styles.fieldLabel}>Handle / Username <span className={styles.required}>*</span></label>
               <input
                 type="text"
                 className={styles.input}
@@ -211,7 +243,7 @@ const InfluencerSignupForm = () => {
             </div>
           </div>
           <div className={styles.fieldGroup} style={{ marginTop: '1.5rem' }}>
-            <label className={styles.fieldLabel}>Profile Bio / Description <span style={{color: 'var(--color-primary)'}}>*</span></label>
+            <label className={styles.fieldLabel}>Profile Bio / Description <span className={styles.required}>*</span></label>
             <textarea
               className={styles.textarea}
               placeholder="Tell brands about your content style, values, and what makes your channel unique..."
@@ -219,6 +251,7 @@ const InfluencerSignupForm = () => {
               onChange={(e) => handleChange('bio', e.target.value)}
               required
             />
+            {errors.bio && <span className={styles.fieldError}>{errors.bio}</span>}
           </div>
         </section>
 
@@ -230,7 +263,7 @@ const InfluencerSignupForm = () => {
           </div>
           <div className={styles.grid2}>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Core Content Niche <span style={{color: 'var(--color-primary)'}}>*</span></label>
+              <label className={styles.fieldLabel}>Core Content Niche <span className={styles.required}>*</span></label>
               <Select
                 options={CREATOR_NICHES}
                 value={formData.niche}
@@ -241,7 +274,7 @@ const InfluencerSignupForm = () => {
               {errors.niche && <span className={styles.fieldError}>{errors.niche}</span>}
             </div>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Estimated Reach / Followers <span style={{color: 'var(--color-primary)'}}>*</span></label>
+              <label className={styles.fieldLabel}>Estimated Reach / Followers <span className={styles.required}>*</span></label>
               <Select
                 options={AUDIENCE_SIZES}
                 value={formData.audience}
@@ -254,7 +287,7 @@ const InfluencerSignupForm = () => {
           </div>
           <div style={{ marginTop: '2rem' }}>
              <div className={styles.uploadBox}>
-                <div className={styles.uploadText}>Upload Media Kit or Portfolio (Required for verification) <span style={{color: 'var(--color-primary)'}}>*</span></div>
+                <div className={styles.uploadText}>Upload Media Kit or Portfolio (Required for verification) <span className={styles.required}>*</span></div>
                 <div className={styles.uploadSub}>PDF or Link to Deck</div>
              </div>
           </div>

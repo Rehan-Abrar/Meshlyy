@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Card from '../../components/common/Card';
+import { campaignsApi } from '../../services/api';
 import styles from './CampaignBuilder.module.css';
 
 const STEPS = ['Campaign Brief', 'Objectives', 'Budget & Timeline'];
@@ -49,6 +51,13 @@ const Step3 = ({ form, onChange }) => (
   <div className={styles.stepForm}>
     <h2 className={styles.stepTitle}>Budget & timeline</h2>
     <Input id="budget" label="Total Budget" prefix="$" placeholder="10,000" value={form.budget || ''} onChange={e => onChange('budget', e.target.value)} />
+    <div className={styles.fieldGroup}>
+      <label className={styles.fieldLabel}>Campaign Visibility</label>
+      <select className={styles.textarea} value={form.visibility || 'MATCHED'} onChange={(e) => onChange('visibility', e.target.value)}>
+        <option value="MATCHED">Matched Creators Only</option>
+        <option value="PUBLIC">Public Campaign Feed</option>
+      </select>
+    </div>
     <Input id="startDate" label="Start Date" type="date" value={form.startDate || ''} onChange={e => onChange('startDate', e.target.value)} />
     <Input id="endDate" label="End Date" type="date" value={form.endDate || ''} onChange={e => onChange('endDate', e.target.value)} />
     <Input id="creators" label="No. of Creators" type="number" placeholder="5" value={form.creators || ''} onChange={e => onChange('creators', e.target.value)} />
@@ -56,12 +65,52 @@ const Step3 = ({ form, onChange }) => (
 );
 
 const CampaignBuilder = () => {
+  const navigate = useNavigate();
   const [step, setStep]     = useState(0);
   const [form, setForm]     = useState({});
-  const [saved,  setSaved]  = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = (key, val) => setForm(p => ({ ...p, [key]: val }));
-  const handleSave   = () => { setSaved(true); setTimeout(() => setSaved(false), 2000); };
+  const handleSave = () => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleLaunch = async () => {
+    setError('');
+    if (!form.name || !form.brief) {
+      setError('Campaign name and brief are required.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await campaignsApi.create({
+        title: form.name,
+        briefPreview: form.brief,
+        briefData: {
+          brand: form.brand,
+          targetAudience: form.target,
+          kpi: form.kpi,
+          startDate: form.startDate,
+          endDate: form.endDate,
+          creators: form.creators,
+        },
+        budget: Number(form.budget) || 0,
+        currency: 'USD',
+        nicheTargets: form.target ? [form.target] : undefined,
+        visibility: form.visibility || 'MATCHED',
+      });
+
+      navigate('/brand/dashboard');
+    } catch (err) {
+      setError(err?.message || 'Unable to launch campaign.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const stepComponents = [
     <Step1 key={0} form={form} onChange={handleChange} />,
@@ -80,6 +129,7 @@ const CampaignBuilder = () => {
 
       <Card variant="standard" className={styles.formCard}>
         {stepComponents[step]}
+        {error && <p role="alert">{error}</p>}
       </Card>
 
       <div className={styles.navRow}>
@@ -88,7 +138,7 @@ const CampaignBuilder = () => {
           ? <Button variant="primary" onClick={() => setStep(s => s + 1)}>Next →</Button>
           : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
-              <Button variant="primary" onClick={handleSave}>Launch Campaign</Button>
+              <Button variant="primary" onClick={handleLaunch} disabled={saving}>{saving ? 'Launching...' : 'Launch Campaign'}</Button>
               <Link to="/brand/ai-assistant">
                 <Button variant="ghost" fullWidth>Ask AI for Creator Matches</Button>
               </Link>

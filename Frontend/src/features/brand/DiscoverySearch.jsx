@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
@@ -6,19 +6,8 @@ import Input from '../../components/common/Input';
 import CircularProgress from '../../components/common/CircularProgress';
 import Select from '../../components/common/Select';
 import Badge from '../../components/common/Badge';
+import { creatorsApi, shortlistsApi } from '../../services/api';
 import styles from './DiscoverySearch.module.css';
-
-// Using raw numbers for robust backend-ready sorting/filtering
-const CREATORS = [
-  { id:1, name:'Zara Ahmed',     niche:'Lifestyle', followers:234000,  engagement:5.2, location:'Dubai',  fit:92, avatar:'ZA', size:'Mid-tier' },
-  { id:2, name:'Leo Kim',        niche:'Tech',      followers:890000,  engagement:3.8, location:'Seoul',  fit:87, avatar:'LK', size:'Macro' },
-  { id:3, name:'Maya Rodriguez', niche:'Fitness',   followers:1200000, engagement:8.1, location:'Miami',  fit:84, avatar:'MR', size:'Mega' },
-  { id:4, name:'Dev Patel',      niche:'Finance',   followers:156000,  engagement:4.5, location:'London', fit:79, avatar:'DP', size:'Mid-tier' },
-  { id:5, name:'Sophie Laurent', niche:'Fashion',   followers:620000,  engagement:6.3, location:'Paris',  fit:91, avatar:'SL', size:'Macro' },
-  { id:6, name:'Aiden Park',     niche:'Gaming',    followers:2100000, engagement:5.7, location:'LA',     fit:76, avatar:'AP', size:'Mega' },
-  { id:7, name:'Ali Hassan',     niche:'Tech',      followers:45000,   engagement:11.2,location:'Lahore', fit:96, avatar:'AH', size:'Micro' },
-  { id:8, name:'Elena Rust',     niche:'Beauty',    followers:8500,    engagement:14.5,location:'Berlin', fit:88, avatar:'ER', size:'Nano' },
-];
 
 const NICHES = ['All', 'Lifestyle', 'Tech', 'Fitness', 'Finance', 'Fashion', 'Gaming', 'Beauty'];
 const SIZES = ['All', 'Nano', 'Micro', 'Mid-tier', 'Macro', 'Mega'];
@@ -27,12 +16,13 @@ const ENGAGEMENTS = ['All', '> 2%', '> 5%', '> 10%'];
 
 // Helper to format large numbers
 const formatNumber = (num) => {
+  if (!Number.isFinite(num)) return '0';
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
   if (num >= 1000) return (num / 1000).toFixed(0) + 'K';
   return num.toString();
 };
 
-const CreatorResultCard = ({ creator }) => (
+const CreatorResultCard = ({ creator, onShortlist, shortlisting }) => (
   <Card variant="standard" className={styles.resultCard}>
     <div className={styles.resultHeader}>
       <div className={styles.avatar}>{creator.avatar}</div>
@@ -50,7 +40,7 @@ const CreatorResultCard = ({ creator }) => (
       {[
         { l: 'FOLLOWERS', v: formatNumber(creator.followers) },
         { l: 'ENG. RATE', v: `${creator.engagement}%` },
-        { l: 'LOCATION',  v: creator.location },
+        { l: 'VERIFIED',  v: creator.verified ? 'Yes' : 'No' },
       ].map(({ l, v }) => (
         <div key={l} className={styles.stat}>
           <span className="micro-label">{l}</span>
@@ -63,10 +53,55 @@ const CreatorResultCard = ({ creator }) => (
       <Link to={`/brand/creator/${creator.id}`} style={{ flex: 1 }}>
         <Button variant="secondary" size="sm" fullWidth>View Profile</Button>
       </Link>
-      <Button variant="primary" size="sm" style={{ flex: 1 }}>+ Shortlist</Button>
+      <Button variant="primary" size="sm" style={{ flex: 1 }} onClick={() => onShortlist(creator.id)} disabled={shortlisting}>
+        {shortlisting ? 'Saving...' : '+ Shortlist'}
+      </Button>
     </div>
   </Card>
 );
+
+const sizeFromFollowers = (followers) => {
+  if (followers < 10000) return 'Nano';
+  if (followers < 50000) return 'Micro';
+  if (followers < 250000) return 'Mid-tier';
+  if (followers < 1000000) return 'Macro';
+  return 'Mega';
+};
+
+const followerRangeToQuery = (value) => {
+  switch (value) {
+    case 'Under 10K': return { follower_min: 0, follower_max: 9999 };
+    case '10K - 50K': return { follower_min: 10000, follower_max: 49999 };
+    case '50K - 250K': return { follower_min: 50000, follower_max: 249999 };
+    case '250K - 1M': return { follower_min: 250000, follower_max: 999999 };
+    case '1M+': return { follower_min: 1000000 };
+    default: return {};
+  }
+};
+
+const engagementToQuery = (value) => {
+  if (value === 'All') return {};
+  const numeric = Number(value.replace('> ', '').replace('%', ''));
+  return Number.isFinite(numeric) ? { engagement_min: numeric } : {};
+};
+
+const mapCreator = (creator) => {
+  const handle = creator.ig_handle ? `@${creator.ig_handle.replace(/^@/, '')}` : 'Creator';
+  const followers = creator.follower_count || 0;
+  const engagement = creator.engagement_rate || 0;
+
+  return {
+    id: creator.id,
+    name: handle,
+    niche: creator.niche_primary || 'General',
+    followers,
+    engagement,
+    fit: Math.max(50, Math.min(99, Math.round((engagement * 10) + 40))),
+    avatar: handle.replace('@', '').slice(0, 2).toUpperCase() || 'CR',
+    size: sizeFromFollowers(followers),
+    verified: !!creator.is_verified,
+  };
+};
 
 const DiscoverySearch = () => {
   // Unified robust state object for future backend payload mapping
@@ -78,6 +113,40 @@ const DiscoverySearch = () => {
     engagement: 'All',
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [creators, setCreators] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [shortlistingId, setShortlistingId] = useState(null);
+
+  const loadCreators = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const query = {
+        ...(filters.niche !== 'All' ? { niche: filters.niche } : {}),
+        ...followerRangeToQuery(filters.followers),
+        ...engagementToQuery(filters.engagement),
+        page: 1,
+        limit: 50,
+      };
+
+      const result = await creatorsApi.discover(query);
+      setCreators((result?.data || []).map(mapCreator));
+    } catch (err) {
+      setCreators([]);
+      setError(err?.message || 'Unable to load creators right now.');
+    } finally {
+      setLoading(false);
+    }
+  }, [filters.niche, filters.followers, filters.engagement]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      loadCreators();
+    }, 200);
+
+    return () => clearTimeout(timeout);
+  }, [loadCreators]);
 
   const updateFilter = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -94,39 +163,26 @@ const DiscoverySearch = () => {
     setShowFilters(false);
   };
 
-  // Robust client-side filtering mirroring backend logic
   const filteredCreators = useMemo(() => {
-    return CREATORS.filter(c => {
-      // 1. Name Match
+    return creators.filter(c => {
       if (filters.search && !c.name.toLowerCase().includes(filters.search.toLowerCase())) return false;
-      
-      // 2. Niche Match
       if (filters.niche !== 'All' && c.niche !== filters.niche) return false;
-
-      // 3. Audience Size Class Match
       if (filters.audienceSize !== 'All' && c.size !== filters.audienceSize) return false;
-
-      // 4. Followers Count Match
-      if (filters.followers !== 'All') {
-        const rules = {
-          'Under 10K':  c.followers < 10000,
-          '10K - 50K':  c.followers >= 10000 && c.followers < 50000,
-          '50K - 250K': c.followers >= 50000 && c.followers < 250000,
-          '250K - 1M':  c.followers >= 250000 && c.followers < 1000000,
-          '1M+':        c.followers >= 1000000,
-        };
-        if (!rules[filters.followers]) return false;
-      }
-
-      // 5. Engagement Match
-      if (filters.engagement !== 'All') {
-        const engValue = parseFloat(filters.engagement.replace('> ', '').replace('%', ''));
-        if (c.engagement <= engValue) return false;
-      }
-
       return true;
     });
-  }, [filters]);
+  }, [creators, filters]);
+
+  const handleShortlist = async (creatorId) => {
+    setShortlistingId(creatorId);
+    try {
+      await shortlistsApi.add({ influencer_id: creatorId });
+      await loadCreators();
+    } catch (err) {
+      setError(err?.message || 'Unable to add creator to shortlist.');
+    } finally {
+      setShortlistingId(null);
+    }
+  };
 
   const hasActiveFilters = Object.values(filters).some(val => val !== 'All' && val !== '');
 
@@ -207,9 +263,24 @@ const DiscoverySearch = () => {
       </header>
 
       <main className={styles.results}>
+        {error && (
+          <div className={styles.emptyState} role="alert">
+            <p>{error}</p>
+            <Button variant="secondary" size="sm" onClick={loadCreators}>Retry</Button>
+          </div>
+        )}
         <div className={styles.grid}>
-          {filteredCreators.length > 0
-            ? filteredCreators.map(c => <CreatorResultCard key={c.id} creator={c} />)
+          {loading
+            ? <div className={styles.emptyState}><p>Loading creators...</p></div>
+            : filteredCreators.length > 0
+            ? filteredCreators.map(c => (
+                <CreatorResultCard
+                  key={c.id}
+                  creator={c}
+                  onShortlist={handleShortlist}
+                  shortlisting={shortlistingId === c.id}
+                />
+              ))
             : <div className={styles.emptyState}>
                 <span className={styles.emptyIcon}>🔍</span>
                 <p>No creators matched your detailed filtering criteria.</p>
