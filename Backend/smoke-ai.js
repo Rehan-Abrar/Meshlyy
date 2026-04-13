@@ -37,12 +37,13 @@ async function runTests() {
       const data = await res.json();
       tests.step1_strategy.hasBody = !!data;
       tests.step1_strategy.hasExpectedFields = !!(
-        data.fitScore &&
-        data.audienceOverlap &&
-        data.toneAlignment &&
-        data.risks &&
-        data.opportunities &&
-        data.recommendation
+        data.executiveSummary &&
+        data.recommendedPlatforms &&
+        data.contentAngles &&
+        data.recommendedPostingCadence &&
+        data.recommendedCreatorProfile &&
+        data.budgetAllocation &&
+        data.kpiTargets
       );
       console.log(`  ✅ ${res.status} - Strategy generated`);
       console.log(`  Fields: ${Object.keys(data).join(', ')}\n`);
@@ -79,12 +80,14 @@ async function runTests() {
       const data = await res.json();
       tests.step2_brief.hasBody = !!data;
       tests.step2_brief.hasExpectedFields = !!(
-        data.title &&
+        data.briefPreview &&
         data.objective &&
+        data.targetAudience &&
+        data.keyMessages &&
         data.deliverables &&
-        data.tone &&
-        data.cta &&
-        data.hashtags &&
+        data.toneGuidance &&
+        data.budgetBreakdown &&
+        data.creatorProfile &&
         data.timeline
       );
       console.log(`  ✅ ${res.status} - Brief generated`);
@@ -148,12 +151,12 @@ async function runTests() {
       const data = await res.json();
       tests.step3_fit_score.hasBody = !!data;
       tests.step3_fit_score.hasExpectedFields = !!(
-        data.overallScore &&
-        data.nicheMatch &&
-        data.audienceMatch &&
-        data.engagementQuality &&
-        data.contentStyle &&
-        data.reasoning
+        data.score !== undefined &&
+        data.summary &&
+        data.scoreBreakdown &&
+        data.strengths &&
+        data.risks &&
+        data.recommendation
       );
       console.log(`  ✅ ${res.status} - Fit score calculated`);
       console.log(`  Fields: ${Object.keys(data).join(', ')}\n`);
@@ -199,12 +202,12 @@ async function runTests() {
       const data = await res.json();
       tests.step4_content_brief.hasBody = !!data;
       tests.step4_content_brief.hasExpectedFields = !!(
-        data.postType &&
-        data.keyMessages &&
-        data.visualGuidelines &&
-        data.dosAndDonts &&
-        data.exampleContent &&
-        data.approvalProcess
+        data.talkingPoints &&
+        data.toneGuidance &&
+        data.formatGuidance &&
+        data.hookIdea &&
+        data.suggestedHashtags &&
+        data.callToAction
       );
       console.log(`  ✅ ${res.status} - Content brief generated`);
       console.log(`  Fields: ${Object.keys(data).join(', ')}\n`);

@@ -35,6 +35,30 @@ const router = Router();
 // AI endpoints require authenticated context; role checks are per-route.
 router.use(verifyToken, loadAuthContext);
 
+type JsonObject = Record<string, unknown>;
+
+function asObject(value: unknown): JsonObject {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as JsonObject;
+  }
+  return {};
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+function mapContentFormatToServiceType(format: 'reel' | 'post' | 'story' | 'carousel'): 'STORY' | 'POST' | 'REEL' | 'BUNDLE' {
+  if (format === 'story') return 'STORY';
+  if (format === 'reel') return 'REEL';
+  if (format === 'carousel') return 'POST';
+  return 'POST';
+}
+
 /**
  * POST /v1/ai/strategy
  * Generate strategic recommendations for brand-creator pairing
@@ -51,7 +75,7 @@ router.post('/strategy', checkRole('BRAND'), async (req: AuthenticatedRequest, r
     // Fetch brand profile
     const { data: brand } = await supabase
       .from('brand_profiles')
-      .select('company_name, industry, tone_voice, budget_range_min, budget_range_max')
+      .select('company_name, industry, tone_voice, target_demographics, campaign_goals, budget_range_min, budget_range_max')
       .eq('id', brandId)
       .single();
 
@@ -65,11 +89,7 @@ router.post('/strategy', checkRole('BRAND'), async (req: AuthenticatedRequest, r
       .select(`
         ig_handle,
         niche_primary,
-        bio,
-        influencer_stats (
-          follower_count,
-          engagement_rate
-        )
+        bio
       `)
       .eq('id', creator_id)
       .eq('is_verified', true)
@@ -80,22 +100,30 @@ router.post('/strategy', checkRole('BRAND'), async (req: AuthenticatedRequest, r
       throw Errors.NOT_FOUND('Creator not found');
     }
 
-    const stats = Array.isArray(creator.influencer_stats)
-      ? creator.influencer_stats[0]
-      : creator.influencer_stats;
+    const budgetMin = Number(brand.budget_range_min) > 0 ? Number(brand.budget_range_min) : 5000;
+    const budgetMaxRaw = Number(brand.budget_range_max) > 0 ? Number(brand.budget_range_max) : budgetMin;
+    const budgetMax = Math.max(budgetMaxRaw, budgetMin);
+
+    const campaignGoals = asStringArray(brand.campaign_goals);
+    if (campaignGoals.length === 0) {
+      campaignGoals.push(`Increase qualified reach for ${brand.company_name}`);
+    }
+
+    const productDescription = [
+      `${brand.company_name} ${brand.industry || 'consumer'} offerings`,
+      `Creator context: @${creator.ig_handle} (${creator.niche_primary})`,
+    ].join('. ');
 
     // Build prompt
     const prompt = buildStrategyPrompt({
-      brandName: brand.company_name,
-      brandIndustry: brand.industry,
-      brandTone: brand.tone_voice,
-      brandBudgetMin: brand.budget_range_min,
-      brandBudgetMax: brand.budget_range_max,
-      creatorHandle: creator.ig_handle,
-      creatorNiche: creator.niche_primary,
-      creatorFollowers: stats?.follower_count || 0,
-      creatorEngagement: stats?.engagement_rate || 0,
-      creatorBio: creator.bio || '',
+      companyName: brand.company_name,
+      industry: brand.industry || 'Consumer Goods',
+      productDescription,
+      campaignGoals,
+      targetDemographics: asObject(brand.target_demographics),
+      budgetRangeMin: budgetMin,
+      budgetRangeMax: budgetMax,
+      toneVoice: brand.tone_voice || 'Clear, direct, and authentic',
     });
 
     // Call AI provider (Gemini primary with automatic Groq fallback)
@@ -135,17 +163,18 @@ const BriefRequestSchema = z.object({
   campaign_goal: z.string().min(10).max(2000),
   target_audience: z.string().optional(),
   budget: z.number().positive().optional(),
+  currency: z.string().min(3).max(8).optional(),
 });
 
 router.post('/brief', checkRole('BRAND'), async (req: AuthenticatedRequest, res, next) => {
   try {
-    const { campaign_goal, target_audience, budget } = BriefRequestSchema.parse(req.body);
+    const { campaign_goal, target_audience, budget, currency } = BriefRequestSchema.parse(req.body);
     const brandId = getBrandId(req.auth!);
 
     // Fetch brand profile
     const { data: brand } = await supabase
       .from('brand_profiles')
-      .select('company_name, industry, tone_voice')
+      .select('company_name, industry, tone_voice, target_demographics, campaign_goals, budget_range_min, budget_range_max')
       .eq('id', brandId)
       .single();
 
@@ -153,14 +182,40 @@ router.post('/brief', checkRole('BRAND'), async (req: AuthenticatedRequest, res,
       throw Errors.NOT_FOUND('Brand profile not found');
     }
 
+    const normalizedGoal = campaign_goal.trim();
+    const existingGoals = asStringArray(brand.campaign_goals);
+    const campaignGoals = [...existingGoals, normalizedGoal].slice(0, 5);
+
+    const targetDemographics = {
+      ...asObject(brand.target_demographics),
+      ...(target_audience ? { userProvidedAudience: target_audience } : {}),
+    };
+
+    const maxBudget = Number(brand.budget_range_max) > 0 ? Number(brand.budget_range_max) : 0;
+    const minBudget = Number(brand.budget_range_min) > 0 ? Number(brand.budget_range_min) : 0;
+    const campaignBudget = budget ?? (maxBudget > 0 ? maxBudget : (minBudget > 0 ? minBudget : 10000));
+
+    const nicheTargets = asStringArray(brand.campaign_goals).slice(0, 3);
+    if (nicheTargets.length === 0 && brand.industry) {
+      nicheTargets.push(brand.industry);
+    }
+
+    const titleSeed = normalizedGoal.replace(/[.!?].*$/, '').trim();
+    const campaignTitle = titleSeed.length > 0
+      ? titleSeed.slice(0, 90)
+      : `${brand.company_name} Creator Growth Campaign`;
+
     // Build prompt
     const prompt = buildBriefPrompt({
-      brandName: brand.company_name,
-      brandIndustry: brand.industry,
-      brandTone: brand.tone_voice,
-      campaignGoal: campaign_goal,
-      targetAudience: target_audience,
-      budget,
+      companyName: brand.company_name,
+      industry: brand.industry || 'Consumer Goods',
+      toneVoice: brand.tone_voice || 'Authentic and direct',
+      campaignGoals,
+      targetDemographics,
+      campaignTitle,
+      campaignBudget,
+      campaignCurrency: currency || 'USD',
+      nicheTargets,
     });
 
     // Call AI provider (Gemini primary with automatic Groq fallback)
@@ -209,7 +264,7 @@ router.post('/fit-score', checkRole('BRAND'), async (req: AuthenticatedRequest, 
     // Fetch campaign
     const { data: campaign } = await supabase
       .from('campaigns')
-      .select('title, brief_preview, niche_targets, brand_id')
+      .select('title, brief_preview, brief_data, niche_targets, budget, currency, brand_id')
       .eq('id', campaign_id)
       .eq('is_deleted', false)
       .single();
@@ -218,18 +273,30 @@ router.post('/fit-score', checkRole('BRAND'), async (req: AuthenticatedRequest, 
       throw Errors.NOT_FOUND('Campaign not found');
     }
 
+    const { data: brand } = await supabase
+      .from('brand_profiles')
+      .select('tone_voice, target_demographics, campaign_goals')
+      .eq('id', brandId)
+      .single();
+
+    if (!brand) {
+      throw Errors.NOT_FOUND('Brand profile not found');
+    }
+
     // Fetch creator with stats
     const { data: creator } = await supabase
       .from('influencer_profiles')
       .select(`
         ig_handle,
         niche_primary,
+        niche_secondary,
         bio,
         influencer_stats (
           follower_count,
           engagement_rate,
           avg_likes,
-          avg_comments
+          avg_comments,
+          top_countries
         )
       `)
       .eq('id', creator_id)
@@ -245,18 +312,54 @@ router.post('/fit-score', checkRole('BRAND'), async (req: AuthenticatedRequest, 
       ? creator.influencer_stats[0]
       : creator.influencer_stats;
 
+    const { data: lowestRateCard } = await supabase
+      .from('rate_cards')
+      .select('rate_amount, currency, service_type')
+      .eq('influencer_id', creator_id)
+      .order('rate_amount', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    const briefData = asObject(campaign.brief_data);
+    const campaignGoals = asStringArray(brand.campaign_goals);
+    if (campaignGoals.length === 0 && typeof campaign.brief_preview === 'string') {
+      campaignGoals.push(campaign.brief_preview);
+    }
+
+    const topCountriesObject = asObject(stats?.top_countries);
+    const topCountries = Object.keys(topCountriesObject).length > 0
+      ? topCountriesObject as Record<string, number>
+      : null;
+
+    const budgetRaw = Number(campaign.budget);
+    const campaignBudget = Number.isFinite(budgetRaw) && budgetRaw > 0 ? budgetRaw : 5000;
+    const campaignCurrency = campaign.currency || 'USD';
+
+    const summaryFromObjective = typeof briefData.objective === 'string' ? briefData.objective : null;
+    const briefSummary = summaryFromObjective || campaign.brief_preview || 'No campaign summary provided';
+
     // Build prompt
     const prompt = buildFitScorePrompt({
       campaignTitle: campaign.title,
-      campaignObjective: campaign.brief_preview || 'No objective provided',
-      campaignNiches: campaign.niche_targets || [],
-      creatorHandle: creator.ig_handle,
-      creatorNiche: creator.niche_primary,
-      creatorFollowers: stats?.follower_count || 0,
-      creatorEngagement: stats?.engagement_rate || 0,
-      creatorAvgLikes: stats?.avg_likes || 0,
-      creatorAvgComments: stats?.avg_comments || 0,
-      creatorBio: creator.bio || '',
+      campaignGoals,
+      nicheTargets: asStringArray(campaign.niche_targets),
+      campaignBudget,
+      campaignCurrency,
+      briefSummary,
+      brandToneVoice: brand.tone_voice || 'Authentic and direct',
+      targetDemographics: asObject(brand.target_demographics),
+      igHandle: creator.ig_handle,
+      nichePrimary: creator.niche_primary,
+      nicheSecondary: creator.niche_secondary,
+      followerCount: Number(stats?.follower_count) || 0,
+      engagementRate: Number(stats?.engagement_rate) || 0,
+      avgLikes: Number(stats?.avg_likes) || 0,
+      avgComments: Number(stats?.avg_comments) || 0,
+      topCountries,
+      bio: creator.bio,
+      lowestRateAmount: Number(lowestRateCard?.rate_amount) || 0,
+      lowestRateCurrency: lowestRateCard?.currency || campaignCurrency,
+      lowestRateServiceType: lowestRateCard?.service_type || 'POST',
     });
 
     // Call AI provider (Gemini primary with automatic Groq fallback)
@@ -318,7 +421,7 @@ router.post('/content-brief', checkRole('BRAND'), async (req: AuthenticatedReque
     // Fetch brand profile
     const { data: brand } = await supabase
       .from('brand_profiles')
-      .select('tone_voice')
+      .select('company_name, tone_voice')
       .eq('id', brandId)
       .single();
 
@@ -329,7 +432,7 @@ router.post('/content-brief', checkRole('BRAND'), async (req: AuthenticatedReque
     // Fetch creator
     const { data: creator } = await supabase
       .from('influencer_profiles')
-      .select('ig_handle, niche_primary')
+      .select('ig_handle, niche_primary, niche_secondary, bio')
       .eq('id', creator_id)
       .eq('is_verified', true)
       .eq('is_deleted', false)
@@ -339,18 +442,53 @@ router.post('/content-brief', checkRole('BRAND'), async (req: AuthenticatedReque
       throw Errors.NOT_FOUND('Creator not found');
     }
 
-    // Extract deliverables from brief_data if available
-    const deliverables = campaign.brief_data?.deliverables || ['1 post'];
+    const briefData = asObject(campaign.brief_data);
+    const keyMessages = asStringArray(briefData.keyMessages);
+    if (keyMessages.length === 0) {
+      keyMessages.push(campaign.brief_preview || 'Highlight what makes this campaign worth acting on');
+    }
+
+    const dos = asStringArray(briefData.dos);
+    if (dos.length === 0) {
+      dos.push(
+        'Show product integration within the first moments of content',
+        'Use a natural first-person explanation of why this matters',
+        'Close with a direct, low-friction CTA'
+      );
+    }
+
+    const donts = asStringArray(briefData.donts);
+    if (donts.length === 0) {
+      donts.push(
+        'Do not use over-produced ad-like visuals',
+        'Do not delay product visibility until late in the content',
+        'Do not make claims the brand cannot substantiate'
+      );
+    }
+
+    const callToAction = typeof briefData.callToAction === 'string'
+      ? briefData.callToAction
+      : (typeof briefData.cta === 'string' ? briefData.cta : 'Use link in bio to discover and shop now');
+
+    const objective = typeof briefData.objective === 'string'
+      ? briefData.objective
+      : (campaign.brief_preview || 'Drive awareness and qualified conversions');
 
     // Build prompt
     const prompt = buildContentBriefPrompt({
+      companyName: brand.company_name,
+      toneVoice: brand.tone_voice || 'Authentic and direct',
+      keyMessages,
+      dos,
+      donts,
+      callToAction,
+      igHandle: creator.ig_handle,
+      nichePrimary: creator.niche_primary,
+      nicheSecondary: creator.niche_secondary,
+      bio: creator.bio,
+      serviceType: mapContentFormatToServiceType(content_format),
       campaignTitle: campaign.title,
-      campaignObjective: campaign.brief_preview || 'No objective provided',
-      campaignDeliverables: deliverables,
-      brandTone: brand.tone_voice,
-      creatorHandle: creator.ig_handle,
-      creatorNiche: creator.niche_primary,
-      contentFormat: content_format,
+      objective,
     });
 
     // Call AI provider (Gemini primary with automatic Groq fallback)
@@ -397,7 +535,7 @@ router.post('/influencer/content-brief', checkRole('INFLUENCER'), async (req: Au
 
     const { data: influencer } = await supabase
       .from('influencer_profiles')
-      .select('id, ig_handle, niche_primary')
+      .select('id, ig_handle, niche_primary, niche_secondary, bio')
       .eq('user_id', req.auth!.userId)
       .eq('is_deleted', false)
       .single();
@@ -431,7 +569,7 @@ router.post('/influencer/content-brief', checkRole('INFLUENCER'), async (req: Au
 
     const { data: brand } = await supabase
       .from('brand_profiles')
-      .select('tone_voice')
+      .select('company_name, tone_voice')
       .eq('id', campaign.brand_id)
       .single();
 
@@ -439,16 +577,52 @@ router.post('/influencer/content-brief', checkRole('INFLUENCER'), async (req: Au
       throw Errors.NOT_FOUND('Brand profile not found');
     }
 
-    const deliverables = campaign.brief_data?.deliverables || ['1 post'];
+    const briefData = asObject(campaign.brief_data);
+    const keyMessages = asStringArray(briefData.keyMessages);
+    if (keyMessages.length === 0) {
+      keyMessages.push(campaign.brief_preview || 'Show why this campaign matters to your audience');
+    }
+
+    const dos = asStringArray(briefData.dos);
+    if (dos.length === 0) {
+      dos.push(
+        'Lead with an authentic personal angle',
+        'Keep product placement natural and early',
+        'Include a clear CTA with minimal friction'
+      );
+    }
+
+    const donts = asStringArray(briefData.donts);
+    if (donts.length === 0) {
+      donts.push(
+        'Avoid scripted ad tone',
+        'Avoid hidden or unclear product moments',
+        'Avoid unsupported claims or guarantees'
+      );
+    }
+
+    const callToAction = typeof briefData.callToAction === 'string'
+      ? briefData.callToAction
+      : (typeof briefData.cta === 'string' ? briefData.cta : 'Direct viewers to link in bio to learn more');
+
+    const objective = typeof briefData.objective === 'string'
+      ? briefData.objective
+      : (campaign.brief_preview || 'Drive awareness and conversion-ready traffic');
 
     const prompt = buildContentBriefPrompt({
+      companyName: brand.company_name,
+      toneVoice: brand.tone_voice || 'Authentic and direct',
+      keyMessages,
+      dos,
+      donts,
+      callToAction,
+      igHandle: influencer.ig_handle,
+      nichePrimary: influencer.niche_primary,
+      nicheSecondary: influencer.niche_secondary,
+      bio: influencer.bio,
+      serviceType: mapContentFormatToServiceType(contentFormat),
       campaignTitle: campaign.title,
-      campaignObjective: campaign.brief_preview || 'No objective provided',
-      campaignDeliverables: deliverables,
-      brandTone: brand.tone_voice,
-      creatorHandle: influencer.ig_handle,
-      creatorNiche: influencer.niche_primary,
-      contentFormat,
+      objective,
     });
 
     const result = await callAI(

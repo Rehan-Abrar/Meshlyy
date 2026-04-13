@@ -34,16 +34,56 @@ function buildGuidanceReply() {
   ].join('\n');
 }
 
+function formatMoney(amount, currency) {
+  if (typeof amount !== 'number' || Number.isNaN(amount)) {
+    return null;
+  }
+  return `${currency || 'USD'} ${Math.round(amount).toLocaleString()}`;
+}
+
 function formatBriefResponse(result) {
   const lines = [];
 
+  if (result?.briefPreview) lines.push(`Brief Preview: ${result.briefPreview}`);
   if (result?.title) lines.push(`Title: ${result.title}`);
   if (result?.objective) lines.push(`Objective: ${result.objective}`);
+  if (result?.targetAudience) lines.push(`Target Audience: ${result.targetAudience}`);
 
-  if (Array.isArray(result?.deliverables) && result.deliverables.length > 0) {
-    lines.push(`Deliverables: ${result.deliverables.join(', ')}`);
+  if (Array.isArray(result?.keyMessages) && result.keyMessages.length > 0) {
+    lines.push('Key Messages:');
+    result.keyMessages.forEach((message, index) => {
+      lines.push(`${index + 1}. ${message}`);
+    });
   }
 
+  if (Array.isArray(result?.deliverables) && result.deliverables.length > 0) {
+    const objectDeliverables = result.deliverables.every((item) => item && typeof item === 'object');
+
+    if (objectDeliverables) {
+      lines.push('Deliverables:');
+      result.deliverables.forEach((item) => {
+        const platform = item.platform || 'Platform';
+        const format = item.format || 'Format';
+        const spec = item.spec ? ` (${item.spec})` : '';
+        const requirement = item.requirement ? ` - ${item.requirement}` : '';
+        lines.push(`- ${platform} ${format}${spec}${requirement}`);
+      });
+    } else {
+      const normalizedDeliverables = result.deliverables.map((item) => {
+        if (typeof item === 'string') return item;
+        if (item && typeof item === 'object') {
+          const platform = item.platform || 'Platform';
+          const format = item.format || 'Format';
+          const spec = item.spec ? ` (${item.spec})` : '';
+          return `${platform} ${format}${spec}`;
+        }
+        return 'Deliverable';
+      });
+      lines.push(`Deliverables: ${normalizedDeliverables.join(', ')}`);
+    }
+  }
+
+  if (result?.toneGuidance) lines.push(`Tone Guidance: ${result.toneGuidance}`);
   if (result?.tone) lines.push(`Tone: ${result.tone}`);
   if (result?.cta) lines.push(`CTA: ${result.cta}`);
 
@@ -51,8 +91,56 @@ function formatBriefResponse(result) {
     lines.push(`Hashtags: ${result.hashtags.join(' ')}`);
   }
 
-  if (result?.timeline) {
+  if (Array.isArray(result?.timeline) && result.timeline.length > 0) {
+    lines.push('Timeline:');
+    result.timeline.forEach((item) => {
+      lines.push(`- ${item.week}: ${item.focus}`);
+    });
+  } else if (result?.timeline) {
     lines.push(`Timeline: ${result.timeline}`);
+  }
+
+  if (result?.budgetBreakdown) {
+    const creatorFees = result.budgetBreakdown.creatorFees;
+    const paidAmplification = result.budgetBreakdown.paidAmplification;
+    const production = result.budgetBreakdown.production;
+
+    lines.push('Budget Breakdown:');
+    if (creatorFees) {
+      const amount = formatMoney(creatorFees.amount, creatorFees.currency);
+      lines.push(`- Creator fees: ${creatorFees.percentage}%${amount ? ` (${amount})` : ''}`);
+    }
+    if (paidAmplification) {
+      const amount = formatMoney(paidAmplification.amount, paidAmplification.currency);
+      lines.push(`- Paid amplification: ${paidAmplification.percentage}%${amount ? ` (${amount})` : ''}`);
+    }
+    if (production) {
+      const amount = formatMoney(production.amount, production.currency);
+      lines.push(`- Production/contingency: ${production.percentage}%${amount ? ` (${amount})` : ''}`);
+    }
+  }
+
+  if (Array.isArray(result?.successMetrics) && result.successMetrics.length > 0) {
+    lines.push('Success Metrics:');
+    result.successMetrics.forEach((metric) => {
+      lines.push(`- ${metric}`);
+    });
+  }
+
+  if (result?.creatorProfile) {
+    lines.push('Creator Profile Recommendation:');
+    if (result.creatorProfile.followerRange) {
+      lines.push(`- Follower range: ${result.creatorProfile.followerRange}`);
+    }
+    if (result.creatorProfile.minEngagementRate) {
+      lines.push(`- Min engagement rate: ${result.creatorProfile.minEngagementRate}`);
+    }
+    if (Array.isArray(result.creatorProfile.nicheKeywords) && result.creatorProfile.nicheKeywords.length > 0) {
+      lines.push(`- Niche keywords: ${result.creatorProfile.nicheKeywords.join(', ')}`);
+    }
+    if (result.creatorProfile.rationale) {
+      lines.push(`- Why this fit works: ${result.creatorProfile.rationale}`);
+    }
   }
 
   return lines.join('\n') || 'AI returned an empty brief. Please try a more specific prompt.';

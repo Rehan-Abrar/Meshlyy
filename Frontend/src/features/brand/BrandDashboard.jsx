@@ -140,11 +140,38 @@ const BrandDashboard = () => {
         campaign_goal: campaignGoal,
       });
 
-      const deliverables = Array.isArray(result.deliverables) ? result.deliverables.join(', ') : 'N/A';
-      const hashtags = Array.isArray(result.hashtags) ? result.hashtags.join(' ') : '';
+      const deliverables = Array.isArray(result.deliverables)
+        ? result.deliverables.map((item) => {
+          if (typeof item === 'string') return item;
+          if (item && typeof item === 'object') {
+            const platform = item.platform || 'Platform';
+            const format = item.format || 'Format';
+            const spec = item.spec ? ` (${item.spec})` : '';
+            return `${platform} ${format}${spec}`;
+          }
+          return 'Deliverable';
+        }).join(', ')
+        : 'N/A';
+
+      const preview = result.briefPreview || result.title || 'Campaign brief generated';
+      const objective = result.objective || 'N/A';
+
+      const creatorFees = result?.budgetBreakdown?.creatorFees;
+      const paidAmplification = result?.budgetBreakdown?.paidAmplification;
+      const production = result?.budgetBreakdown?.production;
+
+      const budgetSummary = [
+        creatorFees ? `Creator ${creatorFees.percentage}%` : null,
+        paidAmplification ? `Amplification ${paidAmplification.percentage}%` : null,
+        production ? `Production ${production.percentage}%` : null,
+      ].filter(Boolean).join(', ');
+
+      const creatorFit = result?.creatorProfile?.rationale
+        ? ` | Creator Fit: ${result.creatorProfile.rationale}`
+        : '';
 
       setAiResponse(
-        `Title: ${result.title || 'Untitled'} | Objective: ${result.objective || 'N/A'} | Deliverables: ${deliverables} | CTA: ${result.cta || 'N/A'}${hashtags ? ` | Hashtags: ${hashtags}` : ''}`
+        `Preview: ${preview} | Objective: ${objective} | Deliverables: ${deliverables}${budgetSummary ? ` | Budget: ${budgetSummary}` : ''}${creatorFit}`
       );
     } catch (error) {
       setAiResponse(
