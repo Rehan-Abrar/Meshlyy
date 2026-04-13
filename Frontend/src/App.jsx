@@ -30,7 +30,8 @@ import VerificationQueue from './features/admin/VerificationQueue';
  * Protected route — redirects if no user or wrong role
  */
 const ProtectedRoute = ({ children, allowedRole }) => {
-  const { user } = useAuth();
+  const { user, authReady } = useAuth();
+  if (!authReady) return null;
   if (!user) return <Navigate to="/role-select" replace />;
   if (allowedRole && user.role !== allowedRole) return <Navigate to="/" replace />;
   return children;

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Card from '../../components/common/Card';
@@ -6,14 +6,20 @@ import Button from '../../components/common/Button';
 import CircularProgress from '../../components/common/CircularProgress';
 import Badge from '../../components/common/Badge';
 import Input from '../../components/common/Input';
+import { apiClient, isApiError } from '../../utils/apiClient';
 import styles from './BrandDashboard.module.css';
 
-const MOCK_CREATORS = [
-  { id:1, name:'Zara Ahmed',    niche:'Lifestyle',  platform:'Instagram', followers:'234K', fit:92, avatar:'ZA' },
-  { id:2, name:'Leo Kim',       niche:'Tech',       platform:'YouTube',   followers:'890K', fit:87, avatar:'LK' },
-  { id:3, name:'Maya Rodriguez',niche:'Fitness',    platform:'TikTok',    followers:'1.2M', fit:84, avatar:'MR' },
-  { id:4, name:'Dev Patel',     niche:'Finance',    platform:'Instagram', followers:'156K', fit:79, avatar:'DP' },
-];
+const formatFollowers = (value) => {
+  const count = Number(value || 0);
+  if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+  if (count >= 1000) return `${Math.round(count / 1000)}K`;
+  return String(count);
+};
+
+const normalizeEngagementPercent = (value) => {
+  const numeric = Number(value || 0);
+  return numeric <= 1 ? numeric * 100 : numeric;
+};
 
 const KPICard = ({ label, value, delta, icon }) => (
   <Card variant="container" className={styles.kpiCard}>
@@ -28,34 +34,48 @@ const KPICard = ({ label, value, delta, icon }) => (
   </Card>
 );
 
-const CreatorCard = ({ creator }) => (
+const CreatorCard = ({ creator, onShortlist, pendingShortlistId }) => {
+  const handle = creator.ig_handle ? `@${creator.ig_handle}` : 'Unknown creator';
+  const avatar = handle.replace('@', '').slice(0, 2).toUpperCase() || 'CR';
+  const engagement = normalizeEngagementPercent(creator.engagement_rate);
+  const fit = Math.max(40, Math.min(98, Math.round(engagement * 12)));
+
+  return (
   <Card variant="standard" className={styles.creatorCard}>
     <div className={styles.creatorTop}>
-      <div className={styles.creatorAvatar}>{creator.avatar}</div>
+      <div className={styles.creatorAvatar}>{avatar}</div>
       <div className={styles.creatorInfo}>
-        <h3 className={styles.creatorName}>{creator.name}</h3>
-        <Badge variant="primary">{creator.niche}</Badge>
+        <h3 className={styles.creatorName}>{handle}</h3>
+        <Badge variant="primary">{creator.niche_primary || 'General'}</Badge>
       </div>
-      <CircularProgress value={creator.fit} size={56} />
+      <CircularProgress value={fit} size={56} />
     </div>
     <div className={styles.creatorStats}>
       <div className={styles.creatorStat}>
         <span className="micro-label">Platform</span>
-        <span>{creator.platform}</span>
+        <span>Instagram</span>
       </div>
       <div className={styles.creatorStat}>
         <span className="micro-label">Followers</span>
-        <span>{creator.followers}</span>
+        <span>{formatFollowers(creator.follower_count)}</span>
       </div>
     </div>
     <div className={styles.creatorActions}>
       <Link to={`/brand/creator/${creator.id}`}>
         <Button variant="secondary" size="sm">View Profile</Button>
       </Link>
-      <Button variant="primary" size="sm">+ Shortlist</Button>
+      <Button
+        variant="primary"
+        size="sm"
+        onClick={() => onShortlist(creator.id)}
+        disabled={pendingShortlistId === creator.id}
+      >
+        {pendingShortlistId === creator.id ? 'Saving...' : '+ Shortlist'}
+      </Button>
     </div>
   </Card>
-);
+  );
+};
 
 const BrandDashboard = () => {
   const { user, updateUser } = useAuth();
@@ -67,6 +87,39 @@ const BrandDashboard = () => {
   const [editName, setEditName] = useState(user?.name || '');
   const [editCompany, setEditCompany] = useState(user?.company || '');
   const [editIndustry, setEditIndustry] = useState(user?.industry || '');
+  const [topCreators, setTopCreators] = useState([]);
+  const [creatorLoading, setCreatorLoading] = useState(true);
+  const [actionMessage, setActionMessage] = useState('');
+  const [pendingShortlistId, setPendingShortlistId] = useState(null);
+
+  useEffect(() => {
+    let ignore = false;
+
+    const loadTopCreators = async () => {
+      setCreatorLoading(true);
+      try {
+        const response = await apiClient.get('/creators?page=1&limit=4');
+        if (!ignore) {
+          setTopCreators(Array.isArray(response.data) ? response.data : []);
+        }
+      } catch (err) {
+        if (!ignore) {
+          setActionMessage(isApiError(err) ? `${err.code}: ${err.message}` : 'Failed to load creators');
+          setTopCreators([]);
+        }
+      } finally {
+        if (!ignore) {
+          setCreatorLoading(false);
+        }
+      }
+    };
+
+    loadTopCreators();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const handleProfileSave = () => {
     if (updateUser) {
@@ -78,11 +131,50 @@ const BrandDashboard = () => {
   const handleAskAI = async () => {
     if (!aiPrompt.trim()) return;
     setAiLoading(true);
-    await new Promise(r => setTimeout(r, 1200));
-    setAiResponse(
-      `Based on your prompt, I recommend targeting micro-influencers in the ${user?.industry || 'lifestyle'} niche with 50K–250K followers on Instagram. Focus on creators with engagement rates above 4% for maximum ROI. Consider a 3-week campaign with 2 posts per creator.`
-    );
-    setAiLoading(false);
+    try {
+      const campaignGoal = aiPrompt.trim().length >= 10
+        ? aiPrompt.trim()
+        : `Create a campaign brief for ${aiPrompt.trim()} with measurable goals.`;
+
+      const result = await apiClient.post('/ai/brief', {
+        campaign_goal: campaignGoal,
+      });
+
+      const deliverables = Array.isArray(result.deliverables) ? result.deliverables.join(', ') : 'N/A';
+      const hashtags = Array.isArray(result.hashtags) ? result.hashtags.join(' ') : '';
+
+      setAiResponse(
+        `Title: ${result.title || 'Untitled'} | Objective: ${result.objective || 'N/A'} | Deliverables: ${deliverables} | CTA: ${result.cta || 'N/A'}${hashtags ? ` | Hashtags: ${hashtags}` : ''}`
+      );
+    } catch (error) {
+      setAiResponse(
+        isApiError(error)
+          ? `${error.code}: ${error.message}`
+          : 'AI request failed. Please try again.'
+      );
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleShortlist = async (creatorId) => {
+    setActionMessage('');
+    setPendingShortlistId(creatorId);
+
+    try {
+      await apiClient.post('/shortlists', { influencer_id: creatorId });
+      setActionMessage('Creator added to shortlist.');
+    } catch (err) {
+      if (isApiError(err) && err.code === 'CONFLICT') {
+        setActionMessage('Creator is already shortlisted.');
+      } else if (isApiError(err)) {
+        setActionMessage(`${err.code}: ${err.message}`);
+      } else {
+        setActionMessage('Unable to add creator to shortlist.');
+      }
+    } finally {
+      setPendingShortlistId(null);
+    }
   };
 
   return (
@@ -120,10 +212,10 @@ const BrandDashboard = () => {
 
       {/* KPIs */}
       <section className={styles.kpiGrid} aria-label="Key metrics">
-        <KPICard label="Active Campaigns" value="4"   delta={12}  icon="C" />
-        <KPICard label="Creators Matched"  value="128" delta={23}  icon="M" />
-        <KPICard label="Shortlisted"       value="18"  delta={5}   icon="S" />
-        <KPICard label="Avg. Fit Score"    value="86%" delta={-2}  icon="F" />
+        <KPICard label="Active Campaigns" value="4"   delta={12}  icon="◉" />
+        <KPICard label="Creators Matched"  value="128" delta={23}  icon="◎" />
+        <KPICard label="Shortlisted"       value="18"  delta={5}   icon="◇" />
+        <KPICard label="Avg. Fit Score"    value="86%" delta={-2}  icon="✦" />
       </section>
 
       <div className={styles.mainGrid}>
@@ -207,6 +299,8 @@ const BrandDashboard = () => {
         </section>
       </div>
 
+      {actionMessage && <Card variant="glass">{actionMessage}</Card>}
+
       {/* Matched creator preview */}
       <section aria-labelledby="matches-heading">
         <div className={styles.sectionHeader}>
@@ -216,7 +310,20 @@ const BrandDashboard = () => {
           </Link>
         </div>
         <div className={styles.creatorGrid}>
-          {MOCK_CREATORS.map(c => <CreatorCard key={c.id} creator={c} />)}
+          {creatorLoading ? (
+            <Card variant="glass">Loading creators...</Card>
+          ) : topCreators.length > 0 ? (
+            topCreators.map((creator) => (
+              <CreatorCard
+                key={creator.id}
+                creator={creator}
+                onShortlist={handleShortlist}
+                pendingShortlistId={pendingShortlistId}
+              />
+            ))
+          ) : (
+            <Card variant="glass">No creator matches available yet.</Card>
+          )}
         </div>
       </section>
     </div>

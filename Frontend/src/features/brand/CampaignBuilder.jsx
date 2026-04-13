@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Card from '../../components/common/Card';
+import { apiClient, isApiError } from '../../utils/apiClient';
 import styles from './CampaignBuilder.module.css';
 
 const STEPS = ['Campaign Brief', 'Objectives', 'Budget & Timeline'];
@@ -59,9 +61,80 @@ const CampaignBuilder = () => {
   const [step, setStep]     = useState(0);
   const [form, setForm]     = useState({});
   const [saved,  setSaved]  = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [campaignId, setCampaignId] = useState(null);
+  const [actionMessage, setActionMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleChange = (key, val) => setForm(p => ({ ...p, [key]: val }));
-  const handleSave   = () => { setSaved(true); setTimeout(() => setSaved(false), 2000); };
+
+  const buildPayload = () => {
+    const budgetValue = Number(form.budget || 0);
+    return {
+      title: (form.name || '').trim() || 'Untitled Campaign',
+      briefPreview: (form.brief || '').trim().slice(0, 280),
+      briefData: {
+        brandOrProduct: form.brand || '',
+        targetAudience: form.target || '',
+        primaryKpi: form.kpi || '',
+        startDate: form.startDate || null,
+        endDate: form.endDate || null,
+        creatorCount: form.creators ? Number(form.creators) : null,
+      },
+      budget: Number.isFinite(budgetValue) && budgetValue > 0 ? budgetValue : undefined,
+      currency: 'USD',
+      visibility: 'MATCHED',
+    };
+  };
+
+  const persistCampaign = async () => {
+    const payload = buildPayload();
+
+    if (campaignId) {
+      await apiClient.patch(`/campaigns/${campaignId}`, payload);
+      return campaignId;
+    }
+
+    const created = await apiClient.post('/campaigns', payload);
+    if (created?.id) {
+      setCampaignId(created.id);
+      return created.id;
+    }
+    return null;
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setErrorMessage('');
+    setActionMessage('');
+    try {
+      await persistCampaign();
+      setSaved(true);
+      setActionMessage('Campaign saved.');
+      setTimeout(() => setSaved(false), 2000);
+    } catch (error) {
+      setErrorMessage(isApiError(error) ? `${error.code}: ${error.message}` : 'Unable to save campaign.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLaunch = async () => {
+    setSaving(true);
+    setErrorMessage('');
+    setActionMessage('');
+    try {
+      const id = await persistCampaign();
+      if (id) {
+        await apiClient.patch(`/campaigns/${id}/status`, { status: 'ACTIVE' });
+      }
+      setActionMessage('Campaign launched.');
+    } catch (error) {
+      setErrorMessage(isApiError(error) ? `${error.code}: ${error.message}` : 'Unable to launch campaign.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const stepComponents = [
     <Step1 key={0} form={form} onChange={handleChange} />,
@@ -73,8 +146,11 @@ const CampaignBuilder = () => {
     <div className={styles.page}>
       <div className={styles.header}>
         <h1 className={styles.title}>New Campaign</h1>
-        <Button variant="primary" onClick={handleSave}>{saved ? '✓ Saved!' : 'Save Campaign'}</Button>
+        <Button variant="primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : (saved ? '✓ Saved!' : 'Save Campaign')}</Button>
       </div>
+
+      {actionMessage && <Card variant="glass">{actionMessage}</Card>}
+      {errorMessage && <Card variant="glass">{errorMessage}</Card>}
 
       <StepTracker current={step} />
 
@@ -88,7 +164,7 @@ const CampaignBuilder = () => {
           ? <Button variant="primary" onClick={() => setStep(s => s + 1)}>Next →</Button>
           : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
-              <Button variant="primary" onClick={handleSave}>Launch Campaign</Button>
+              <Button variant="primary" onClick={handleLaunch} disabled={saving}>{saving ? 'Launching...' : 'Launch Campaign'}</Button>
               <Link to="/brand/ai-assistant">
                 <Button variant="ghost" fullWidth>Ask AI for Creator Matches</Button>
               </Link>

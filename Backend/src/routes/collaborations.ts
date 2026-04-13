@@ -197,4 +197,17 @@ router.get('/campaign/:campaignId', async (req: AuthenticatedRequest, res, next)
   }
 });
 
+/**
+ * GET /v1/collaborations/:id
+ * Get single collaboration details (ownership enforced in service layer)
+ */
+router.get('/:id', async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const collaboration = await collaborationService.getById(req.auth!, req.params.id);
+    res.json(collaboration);
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

@@ -1,7 +1,6 @@
 // Apify Instagram scraper service
 import config from '../config/env';
 import { logger } from '../middleware/logging';
-import { Errors } from '../lib/errors';
 
 export interface ApifyIngestResult {
   success: boolean;
@@ -18,6 +17,7 @@ export interface InstagramProfileData {
   engagementRate: number;
   avgLikes: number;
   avgComments: number;
+  totalViews30d: number | null;
   topCountries?: Record<string, number>;
   ageSplit?: Record<string, number>;
   genderSplit?: Record<string, number>;
@@ -110,7 +110,15 @@ export class ApifyService {
 
       // Fetch results from dataset
       const datasetId = result.datasetId!;
-      const profileData = await this.fetchDataset(datasetId);
+      let profileData: InstagramProfileData | null = null;
+      try {
+        profileData = await this.fetchDataset(datasetId);
+      } catch (parseError: any) {
+        return this.failure(
+          IngestFailureClass.PARSE_ERROR,
+          parseError?.message || 'Failed to parse Apify response payload'
+        );
+      }
 
       if (!profileData) {
         return this.failure(
@@ -210,28 +218,133 @@ export class ApifyService {
 
     const profile = items[0];
 
-    // Parse and normalize Apify response
+    const posts = this.extractPosts(profile);
+    const followerCount = this.readNumber(profile, ['followersCount', 'followers', 'followerCount']);
+    if (followerCount === null) {
+      throw new Error('Apify payload missing follower count');
+    }
+
+    const followingCount = this.readNumber(profile, ['followsCount', 'followingCount', 'following']) ?? 0;
+    const postsCount = this.readNumber(profile, ['postsCount', 'posts']) ?? posts.length;
+    const avgLikes = this.readNumber(profile, ['avgLikes', 'averageLikes']) ?? this.averageFromPosts(posts, ['likesCount', 'likes', 'likeCount']);
+    const avgComments = this.readNumber(profile, ['avgComments', 'averageComments']) ?? this.averageFromPosts(posts, ['commentsCount', 'comments', 'commentCount']);
+
+    if (avgLikes === null || avgComments === null) {
+      throw new Error('Apify payload missing like/comment metrics for engagement calculation');
+    }
+
+    const engagementRate = this.resolveEngagementRate(profile, avgLikes, avgComments, followerCount);
+
     return {
-      handle: profile.username,
-      followerCount: profile.followersCount || 0,
-      followingCount: profile.followsCount || 0,
-      postsCount: profile.postsCount || 0,
-      engagementRate: this.calculateEngagementRate(profile),
-      avgLikes: profile.avgLikes || 0,
-      avgComments: profile.avgComments || 0,
+      handle: String(profile.username || profile.handle || '').trim(),
+      followerCount,
+      followingCount,
+      postsCount,
+      engagementRate,
+      avgLikes,
+      avgComments,
+      totalViews30d: this.calculateTotalViews30d(posts),
       topCountries: profile.topCountries || null,
       ageSplit: profile.audienceAgeGenderSplit?.ageRange || null,
       genderSplit: profile.audienceAgeGenderSplit?.gender || null,
     };
   }
 
-  /**
-   * Calculate engagement rate from profile data
-   */
-  private calculateEngagementRate(profile: any): number {
-    const followers = profile.followersCount || 1; // Avoid division by zero
-    const avgEngagement = (profile.avgLikes || 0) + (profile.avgComments || 0);
-    return (avgEngagement / followers) * 100;
+  private readNumber(source: any, keys: string[]): number | null {
+    for (const key of keys) {
+      const raw = source?.[key];
+      const value = Number(raw);
+      if (Number.isFinite(value) && value >= 0) {
+        return value;
+      }
+    }
+    return null;
+  }
+
+  private extractPosts(profile: any): any[] {
+    const candidates = [profile?.latestPosts, profile?.posts, profile?.latestIgtvVideos, profile?.items];
+    for (const candidate of candidates) {
+      if (Array.isArray(candidate)) {
+        return candidate;
+      }
+    }
+    return [];
+  }
+
+  private averageFromPosts(posts: any[], keys: string[]): number | null {
+    if (!posts.length) {
+      return null;
+    }
+
+    const values: number[] = [];
+    for (const post of posts) {
+      const metric = this.readNumber(post, keys);
+      if (metric !== null) {
+        values.push(metric);
+      }
+    }
+
+    if (values.length === 0) {
+      return null;
+    }
+
+    const average = values.reduce((sum, value) => sum + value, 0) / values.length;
+    return Math.round(average);
+  }
+
+  private resolveEngagementRate(profile: any, avgLikes: number, avgComments: number, followers: number): number {
+    const directRate = this.readNumber(profile, ['engagementRate', 'engagement_rate']);
+    if (directRate !== null) {
+      return directRate <= 1 ? directRate * 100 : directRate;
+    }
+
+    const safeFollowers = Math.max(followers, 1);
+    return ((avgLikes + avgComments) / safeFollowers) * 100;
+  }
+
+  private parsePostTimestamp(post: any): number | null {
+    const raw = post?.takenAtTimestamp ?? post?.takenAt ?? post?.timestamp ?? post?.createdAt ?? post?.date;
+    if (raw === undefined || raw === null) {
+      return null;
+    }
+
+    if (typeof raw === 'number') {
+      return raw < 1e12 ? raw * 1000 : raw;
+    }
+
+    const parsed = Date.parse(String(raw));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private calculateTotalViews30d(posts: any[]): number | null {
+    if (!posts.length) {
+      return null;
+    }
+
+    const now = Date.now();
+    const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+
+    const withTimestamps = posts
+      .map((post) => ({ post, ts: this.parsePostTimestamp(post) }))
+      .filter((entry) => entry.ts !== null) as Array<{ post: any; ts: number }>;
+
+    const candidates = withTimestamps.length > 0
+      ? withTimestamps.filter((entry) => entry.ts >= thirtyDaysAgo).map((entry) => entry.post)
+      : posts.slice(0, 12);
+
+    const viewValues: number[] = [];
+    for (const post of candidates) {
+      const views = this.readNumber(post, ['videoViewCount', 'videoPlayCount', 'playCount', 'viewCount', 'views']);
+      if (views !== null) {
+        viewValues.push(views);
+      }
+    }
+
+    if (viewValues.length === 0) {
+      return null;
+    }
+
+    return Math.round(viewValues.reduce((sum, value) => sum + value, 0));
   }
 
   /**

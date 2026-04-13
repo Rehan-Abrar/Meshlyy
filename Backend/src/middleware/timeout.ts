@@ -9,7 +9,9 @@ export function timeoutMiddleware() {
   return (req: Request, res: Response, next: NextFunction) => {
     // AI routes need longer timeout to complete LLM calls.
     const isAiRoute = req.path.startsWith('/v1/ai/');
-    const aiTimeoutMs = Math.max(config.GEMINI_TIMEOUT_MS + 5000, config.REQUEST_TIMEOUT_MS);
+    const providerMaxTimeoutMs = Math.max(config.GEMINI_TIMEOUT_MS, config.GROQ_TIMEOUT_MS);
+    // Allow two full provider attempts (primary + fallback), plus a small buffer.
+    const aiTimeoutMs = Math.max(providerMaxTimeoutMs * 2 + 5000, config.REQUEST_TIMEOUT_MS);
     const requestTimeoutMs = isAiRoute ? aiTimeoutMs : config.REQUEST_TIMEOUT_MS;
 
     return timeout(requestTimeoutMs)(req, res, next);

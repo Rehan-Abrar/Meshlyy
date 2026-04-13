@@ -20,8 +20,16 @@ const AppLayout = () => {
   // Close sidebar on route change (for mobile)
   useEffect(() => {
     if (window.innerWidth <= 900) {
-      closeSidebar();
+      const timer = window.setTimeout(() => {
+        setIsSidebarOpen(false);
+      }, 0);
+
+      return () => {
+        window.clearTimeout(timer);
+      };
     }
+
+    return undefined;
   }, [location.pathname]);
 
   return (

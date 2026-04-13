@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
@@ -6,70 +6,105 @@ import Input from '../../components/common/Input';
 import CircularProgress from '../../components/common/CircularProgress';
 import Select from '../../components/common/Select';
 import Badge from '../../components/common/Badge';
+import { apiClient, isApiError } from '../../utils/apiClient';
 import styles from './DiscoverySearch.module.css';
-
-// Using raw numbers for robust backend-ready sorting/filtering
-const CREATORS = [
-  { id:1, name:'Zara Ahmed',     niche:'Lifestyle', followers:234000,  engagement:5.2, location:'Dubai',  fit:92, avatar:'ZA', size:'Mid-tier' },
-  { id:2, name:'Leo Kim',        niche:'Tech',      followers:890000,  engagement:3.8, location:'Seoul',  fit:87, avatar:'LK', size:'Macro' },
-  { id:3, name:'Maya Rodriguez', niche:'Fitness',   followers:1200000, engagement:8.1, location:'Miami',  fit:84, avatar:'MR', size:'Mega' },
-  { id:4, name:'Dev Patel',      niche:'Finance',   followers:156000,  engagement:4.5, location:'London', fit:79, avatar:'DP', size:'Mid-tier' },
-  { id:5, name:'Sophie Laurent', niche:'Fashion',   followers:620000,  engagement:6.3, location:'Paris',  fit:91, avatar:'SL', size:'Macro' },
-  { id:6, name:'Aiden Park',     niche:'Gaming',    followers:2100000, engagement:5.7, location:'LA',     fit:76, avatar:'AP', size:'Mega' },
-  { id:7, name:'Ali Hassan',     niche:'Tech',      followers:45000,   engagement:11.2,location:'Lahore', fit:96, avatar:'AH', size:'Micro' },
-  { id:8, name:'Elena Rust',     niche:'Beauty',    followers:8500,    engagement:14.5,location:'Berlin', fit:88, avatar:'ER', size:'Nano' },
-];
 
 const NICHES = ['All', 'Lifestyle', 'Tech', 'Fitness', 'Finance', 'Fashion', 'Gaming', 'Beauty'];
 const SIZES = ['All', 'Nano', 'Micro', 'Mid-tier', 'Macro', 'Mega'];
 const FOLLOWERS = ['All', 'Under 10K', '10K - 50K', '50K - 250K', '250K - 1M', '1M+'];
 const ENGAGEMENTS = ['All', '> 2%', '> 5%', '> 10%'];
 
-// Helper to format large numbers
 const formatNumber = (num) => {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-  if (num >= 1000) return (num / 1000).toFixed(0) + 'K';
-  return num.toString();
+  const value = Number(num || 0);
+  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+  if (value >= 1000) return `${Math.round(value / 1000)}K`;
+  return value.toString();
 };
 
-const CreatorResultCard = ({ creator }) => (
-  <Card variant="standard" className={styles.resultCard}>
-    <div className={styles.resultHeader}>
-      <div className={styles.avatar}>{creator.avatar}</div>
-      <div className={styles.info}>
-        <h3 className={styles.name}>{creator.name}</h3>
-        <div className={styles.tags}>
-          <Badge variant="primary">{creator.niche}</Badge>
-          <Badge variant="secondary">{creator.size}</Badge>
+const normalizeEngagementPercent = (value) => {
+  const numeric = Number(value || 0);
+  return numeric <= 1 ? numeric * 100 : numeric;
+};
+
+const getAudienceSize = (followers) => {
+  const count = Number(followers || 0);
+  if (count < 10000) return 'Nano';
+  if (count < 50000) return 'Micro';
+  if (count < 250000) return 'Mid-tier';
+  if (count < 1000000) return 'Macro';
+  return 'Mega';
+};
+
+const getFollowerRange = (label) => {
+  switch (label) {
+    case 'Under 10K':
+      return { min: 0, max: 9999 };
+    case '10K - 50K':
+      return { min: 10000, max: 49999 };
+    case '50K - 250K':
+      return { min: 50000, max: 249999 };
+    case '250K - 1M':
+      return { min: 250000, max: 999999 };
+    case '1M+':
+      return { min: 1000000, max: null };
+    default:
+      return { min: null, max: null };
+  }
+};
+
+const CreatorResultCard = ({ creator, onShortlist, pendingShortlistId }) => {
+  const followerCount = Number(creator.follower_count || 0);
+  const engagement = normalizeEngagementPercent(creator.engagement_rate);
+  const fit = Math.max(40, Math.min(98, Math.round(engagement * 12)));
+  const handle = creator.ig_handle ? `@${creator.ig_handle}` : 'Unknown creator';
+  const avatar = handle.replace('@', '').slice(0, 2).toUpperCase() || 'CR';
+
+  return (
+    <Card variant="standard" className={styles.resultCard}>
+      <div className={styles.resultHeader}>
+        <div className={styles.avatar}>{avatar}</div>
+        <div className={styles.info}>
+          <h3 className={styles.name}>{handle}</h3>
+          <div className={styles.tags}>
+            <Badge variant="primary">{creator.niche_primary || 'General'}</Badge>
+            <Badge variant="secondary">{getAudienceSize(followerCount)}</Badge>
+          </div>
         </div>
+        <CircularProgress value={fit} size={64} />
       </div>
-      <CircularProgress value={creator.fit} size={64} />
-    </div>
 
-    <div className={styles.stats}>
-      {[
-        { l: 'FOLLOWERS', v: formatNumber(creator.followers) },
-        { l: 'ENG. RATE', v: `${creator.engagement}%` },
-        { l: 'LOCATION',  v: creator.location },
-      ].map(({ l, v }) => (
-        <div key={l} className={styles.stat}>
-          <span className="micro-label">{l}</span>
-          <span className={styles.statVal}>{v}</span>
-        </div>
-      ))}
-    </div>
+      <div className={styles.stats}>
+        {[
+          { l: 'FOLLOWERS', v: formatNumber(followerCount) },
+          { l: 'ENG. RATE', v: `${engagement.toFixed(1)}%` },
+          { l: 'PLATFORM', v: 'Instagram' },
+        ].map(({ l, v }) => (
+          <div key={l} className={styles.stat}>
+            <span className="micro-label">{l}</span>
+            <span className={styles.statVal}>{v}</span>
+          </div>
+        ))}
+      </div>
 
-    <div className={styles.actions}>
-      <Link to={`/brand/creator/${creator.id}`} style={{ flex: 1 }}>
-        <Button variant="secondary" size="sm" fullWidth>View Profile</Button>
-      </Link>
-      <Button variant="primary" size="sm" style={{ flex: 1 }}>+ Shortlist</Button>
-    </div>
-  </Card>
-);
+      <div className={styles.actions}>
+        <Link to={`/brand/creator/${creator.id}`} style={{ flex: 1 }}>
+          <Button variant="secondary" size="sm" fullWidth>View Profile</Button>
+        </Link>
+        <Button
+          variant="primary"
+          size="sm"
+          style={{ flex: 1 }}
+          onClick={() => onShortlist(creator.id)}
+          disabled={pendingShortlistId === creator.id}
+        >
+          {pendingShortlistId === creator.id ? 'Saving...' : '+ Shortlist'}
+        </Button>
+      </div>
+    </Card>
+  );
+};
 
 const DiscoverySearch = () => {
-  // Unified robust state object for future backend payload mapping
   const [filters, setFilters] = useState({
     search: '',
     niche: 'All',
@@ -78,9 +113,14 @@ const DiscoverySearch = () => {
     engagement: 'All',
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [creators, setCreators] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [actionMessage, setActionMessage] = useState('');
+  const [pendingShortlistId, setPendingShortlistId] = useState(null);
 
   const updateFilter = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
   const clearFilters = () => {
@@ -94,41 +134,94 @@ const DiscoverySearch = () => {
     setShowFilters(false);
   };
 
-  // Robust client-side filtering mirroring backend logic
+  useEffect(() => {
+    let ignore = false;
+
+    const loadCreators = async () => {
+      setLoading(true);
+      setError('');
+
+      try {
+        const params = new URLSearchParams({ page: '1', limit: '100' });
+
+        if (filters.niche !== 'All') {
+          params.set('niche', filters.niche);
+        }
+
+        const followerRange = getFollowerRange(filters.followers);
+        if (followerRange.min !== null) {
+          params.set('follower_min', String(followerRange.min));
+        }
+        if (followerRange.max !== null) {
+          params.set('follower_max', String(followerRange.max));
+        }
+
+        if (filters.engagement !== 'All') {
+          params.set('engagement_min', filters.engagement.replace('> ', '').replace('%', ''));
+        }
+
+        const response = await apiClient.get(`/creators?${params.toString()}`);
+        if (!ignore) {
+          setCreators(Array.isArray(response.data) ? response.data : []);
+        }
+      } catch (err) {
+        if (!ignore) {
+          setError(isApiError(err) ? `${err.code}: ${err.message}` : 'Failed to load creators');
+          setCreators([]);
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadCreators();
+
+    return () => {
+      ignore = true;
+    };
+  }, [filters.niche, filters.followers, filters.engagement]);
+
   const filteredCreators = useMemo(() => {
-    return CREATORS.filter(c => {
-      // 1. Name Match
-      if (filters.search && !c.name.toLowerCase().includes(filters.search.toLowerCase())) return false;
-      
-      // 2. Niche Match
-      if (filters.niche !== 'All' && c.niche !== filters.niche) return false;
-
-      // 3. Audience Size Class Match
-      if (filters.audienceSize !== 'All' && c.size !== filters.audienceSize) return false;
-
-      // 4. Followers Count Match
-      if (filters.followers !== 'All') {
-        const rules = {
-          'Under 10K':  c.followers < 10000,
-          '10K - 50K':  c.followers >= 10000 && c.followers < 50000,
-          '50K - 250K': c.followers >= 50000 && c.followers < 250000,
-          '250K - 1M':  c.followers >= 250000 && c.followers < 1000000,
-          '1M+':        c.followers >= 1000000,
-        };
-        if (!rules[filters.followers]) return false;
+    return creators.filter((creator) => {
+      const handle = (creator.ig_handle || '').toLowerCase();
+      if (filters.search && !handle.includes(filters.search.toLowerCase())) {
+        return false;
       }
 
-      // 5. Engagement Match
-      if (filters.engagement !== 'All') {
-        const engValue = parseFloat(filters.engagement.replace('> ', '').replace('%', ''));
-        if (c.engagement <= engValue) return false;
+      if (filters.audienceSize !== 'All') {
+        const size = getAudienceSize(creator.follower_count);
+        if (size !== filters.audienceSize) {
+          return false;
+        }
       }
 
       return true;
     });
-  }, [filters]);
+  }, [creators, filters.search, filters.audienceSize]);
 
-  const hasActiveFilters = Object.values(filters).some(val => val !== 'All' && val !== '');
+  const hasActiveFilters = Object.values(filters).some((val) => val !== 'All' && val !== '');
+
+  const handleShortlist = async (creatorId) => {
+    setActionMessage('');
+    setPendingShortlistId(creatorId);
+
+    try {
+      await apiClient.post('/shortlists', { influencer_id: creatorId });
+      setActionMessage('Creator added to shortlist.');
+    } catch (err) {
+      if (isApiError(err) && err.code === 'CONFLICT') {
+        setActionMessage('Creator is already shortlisted.');
+      } else if (isApiError(err)) {
+        setActionMessage(`${err.code}: ${err.message}`);
+      } else {
+        setActionMessage('Unable to add creator to shortlist.');
+      }
+    } finally {
+      setPendingShortlistId(null);
+    }
+  };
 
   return (
     <div className={styles.page}>
@@ -138,9 +231,9 @@ const DiscoverySearch = () => {
             Instagram Creators
             <span className={styles.resultsCount}>{filteredCreators.length} results</span>
           </h1>
-          <Button 
-            variant="secondary" 
-            size="sm" 
+          <Button
+            variant="secondary"
+            size="sm"
             className={styles.mobileFilterToggle}
             onClick={() => setShowFilters(!showFilters)}
           >
@@ -153,9 +246,9 @@ const DiscoverySearch = () => {
             <Input
               id="search"
               type="text"
-              placeholder="Search by name..."
+              placeholder="Search by handle..."
               value={filters.search}
-              onChange={e => updateFilter('search', e.target.value)}
+              onChange={(e) => updateFilter('search', e.target.value)}
               className={styles.searchInput}
             />
           </div>
@@ -165,8 +258,8 @@ const DiscoverySearch = () => {
               <Select
                 id="niche-select"
                 value={filters.niche}
-                onChange={e => updateFilter('niche', e.target.value)}
-                options={NICHES.map(n => ({ value: n, label: n + (n === 'All' ? '' : ' Niche') }))}
+                onChange={(e) => updateFilter('niche', e.target.value)}
+                options={NICHES.map((niche) => ({ value: niche, label: niche === 'All' ? 'All Niches' : `${niche} Niche` }))}
               />
             </div>
 
@@ -174,17 +267,20 @@ const DiscoverySearch = () => {
               <Select
                 id="size-select"
                 value={filters.audienceSize}
-                onChange={e => updateFilter('audienceSize', e.target.value)}
-                options={SIZES.map(s => ({ value: s, label: s === 'All' ? 'All Sizes' : s }))}
+                onChange={(e) => updateFilter('audienceSize', e.target.value)}
+                options={SIZES.map((size) => ({ value: size, label: size === 'All' ? 'All Sizes' : size }))}
               />
             </div>
-            
+
             <div className={styles.dropdownGroup} style={{ flex: '1 1 140px' }}>
               <Select
                 id="followers-select"
                 value={filters.followers}
-                onChange={e => updateFilter('followers', e.target.value)}
-                options={FOLLOWERS.map(f => ({ value: f, label: f === 'All' ? 'Any Follower Count' : f }))}
+                onChange={(e) => updateFilter('followers', e.target.value)}
+                options={FOLLOWERS.map((followers) => ({
+                  value: followers,
+                  label: followers === 'All' ? 'Any Follower Count' : followers,
+                }))}
               />
             </div>
 
@@ -192,8 +288,11 @@ const DiscoverySearch = () => {
               <Select
                 id="eng-select"
                 value={filters.engagement}
-                onChange={e => updateFilter('engagement', e.target.value)}
-                options={ENGAGEMENTS.map(e => ({ value: e, label: e === 'All' ? 'Any Engagement' : `Eng: ${e}` }))}
+                onChange={(e) => updateFilter('engagement', e.target.value)}
+                options={ENGAGEMENTS.map((engagement) => ({
+                  value: engagement,
+                  label: engagement === 'All' ? 'Any Engagement' : `Eng: ${engagement}`,
+                }))}
               />
             </div>
 
@@ -206,16 +305,29 @@ const DiscoverySearch = () => {
         </div>
       </header>
 
+      {actionMessage && <Card variant="glass">{actionMessage}</Card>}
+      {error && <Card variant="glass">{error}</Card>}
+
       <main className={styles.results}>
         <div className={styles.grid}>
-          {filteredCreators.length > 0
-            ? filteredCreators.map(c => <CreatorResultCard key={c.id} creator={c} />)
-            : <div className={styles.emptyState}>
-                <span className={styles.emptyIcon}>🔍</span>
-                <p>No creators matched your detailed filtering criteria.</p>
-                <Button variant="primary" size="sm" onClick={clearFilters}>Clear All Filters</Button>
-              </div>
-          }
+          {loading ? (
+            <Card variant="glass">Loading creators...</Card>
+          ) : filteredCreators.length > 0 ? (
+            filteredCreators.map((creator) => (
+              <CreatorResultCard
+                key={creator.id}
+                creator={creator}
+                onShortlist={handleShortlist}
+                pendingShortlistId={pendingShortlistId}
+              />
+            ))
+          ) : (
+            <div className={styles.emptyState}>
+              <span className={styles.emptyIcon}>🔍</span>
+              <p>No creators matched your detailed filtering criteria.</p>
+              <Button variant="primary" size="sm" onClick={clearFilters}>Clear All Filters</Button>
+            </div>
+          )}
         </div>
       </main>
     </div>

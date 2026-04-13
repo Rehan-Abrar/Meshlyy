@@ -304,12 +304,40 @@ export class CollaborationService {
   async getById(authContext: AuthContext, collaborationId: string): Promise<CollaborationRequest> {
     const { data, error } = await supabase
       .from('collaboration_requests')
-      .select('*')
+      .select(`
+        *,
+        campaign:campaigns (
+          id,
+          title,
+          brief_preview,
+          budget,
+          currency
+        ),
+        brand:brand_profiles (
+          id,
+          company_name
+        )
+      `)
       .eq('id', collaborationId)
       .single();
 
     if (error || !data) {
       throw Errors.NOT_FOUND('Collaboration request not found');
+    }
+
+    if (authContext.role === 'BRAND') {
+      assertBrandOwnership(authContext, data.brand_id);
+    } else if (authContext.role === 'INFLUENCER') {
+      const { data: influencerProfile } = await supabase
+        .from('influencer_profiles')
+        .select('id')
+        .eq('user_id', authContext.userId)
+        .eq('is_deleted', false)
+        .single();
+
+      if (!influencerProfile || influencerProfile.id !== data.influencer_id) {
+        throw Errors.FORBIDDEN('You can only access your own collaboration requests');
+      }
     }
 
     return data;
@@ -329,6 +357,10 @@ export class CollaborationService {
           brief_preview,
           budget,
           currency
+        ),
+        brand:brand_profiles (
+          id,
+          company_name
         )
       `)
       .eq('influencer_id', influencerId)

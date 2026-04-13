@@ -1,17 +1,51 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
+import { apiClient, isApiError } from '../../utils/apiClient';
 import styles from './VerificationQueue.module.css';
 
-const QUEUE = [
-  { id:1, name:'Priya Sharma',  handle:'@priyasharma',  platform:'Instagram', followers:'45K', engagement:'6.1%', submitted:'Apr 8, 2025',  niche:'Beauty',   status:'pending' },
-  { id:2, name:'Carlos Vega',   handle:'@carlos_vega',  platform:'YouTube',   followers:'120K',engagement:'3.8%', submitted:'Apr 7, 2025',  niche:'Fitness',  status:'pending' },
-  { id:3, name:'Aisha Nakamura',handle:'@aisha.n',      platform:'TikTok',    followers:'89K', engagement:'9.2%', submitted:'Apr 6, 2025',  niche:'Lifestyle',status:'pending' },
-  { id:4, name:'Jake Torres',   handle:'@jakebuilds',   platform:'YouTube',   followers:'210K',engagement:'4.5%', submitted:'Apr 5, 2025',  niche:'Tech',     status:'pending' },
-];
+function formatFollowers(value) {
+  const count = Number(value || 0);
+  if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+  if (count >= 1000) return `${Math.round(count / 1000)}K`;
+  return String(count);
+}
 
-const QueueItem = ({ creator, onApprove, onRequest }) => (
+function formatEngagement(value) {
+  const numeric = Number(value || 0);
+  const percent = numeric <= 1 ? numeric * 100 : numeric;
+  return `${percent.toFixed(1)}%`;
+}
+
+function formatSubmittedDate(creator) {
+  const fallback = creator?.last_scraped_at || creator?.last_resubmitted_at;
+  const date = fallback ? new Date(fallback) : null;
+  if (!date || Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function mapQueueRow(row) {
+  const handle = row.ig_handle ? `@${row.ig_handle}` : '@creator';
+  const displayName = row.ig_handle || row.id.slice(0, 8);
+  return {
+    id: row.id,
+    name: displayName,
+    handle,
+    platform: 'Instagram',
+    followers: formatFollowers(row?.stats?.follower_count),
+    engagement: formatEngagement(row?.stats?.engagement_rate),
+    submitted: formatSubmittedDate(row),
+    niche: row.niche_primary || 'General',
+    status: row.verification_status || 'FLAGGED',
+  };
+}
+
+const QueueItem = ({ creator, onApprove, onRequest, busy }) => (
   <div className={styles.row}>
     <div className={styles.rowLeft}>
       <div className={styles.avatar}>{creator.name.charAt(0)}</div>
@@ -39,15 +73,37 @@ const QueueItem = ({ creator, onApprove, onRequest }) => (
       <span>{creator.submitted}</span>
     </div>
     <div className={styles.rowActions}>
-      <Button variant="success" size="sm" onClick={() => onApprove(creator.id)}>✓ Approve</Button>
-      <Button variant="secondary" size="sm" onClick={() => onRequest(creator.id)}>Request Changes</Button>
+      <Button variant="success" size="sm" onClick={onApprove} disabled={busy}>Approve</Button>
+      <Button variant="secondary" size="sm" onClick={onRequest} disabled={busy}>Request Changes</Button>
     </div>
   </div>
 );
 
 const VerificationQueue = () => {
-  const [queue, setQueue] = useState(QUEUE);
+  const [queue, setQueue] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [actionLoading, setActionLoading] = useState({});
   const [notifications, setNotifications] = useState([]);
+
+  const loadQueue = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await apiClient.get('/admin/verification-queue');
+      const rows = Array.isArray(response.data) ? response.data : [];
+      setQueue(rows.map(mapQueueRow));
+    } catch (err) {
+      setError(isApiError(err) ? `${err.code}: ${err.message}` : 'Failed to load verification queue');
+      setQueue([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadQueue();
+  }, []);
 
   const toast = (msg) => {
     const id = Date.now();
@@ -55,14 +111,36 @@ const VerificationQueue = () => {
     setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== id)), 3000);
   };
 
-  const onApprove = (id) => {
-    setQueue(q => q.filter(c => c.id !== id));
-    toast('✓ Creator approved and notified.');
+  const onApprove = async (id) => {
+    setActionLoading((prev) => ({ ...prev, [id]: true }));
+    try {
+      await apiClient.post(`/admin/verify/${id}`, {});
+      setQueue((q) => q.filter((c) => c.id !== id));
+      toast('Creator approved.');
+    } catch (err) {
+      toast(isApiError(err) ? `${err.code}: ${err.message}` : 'Approval failed.');
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [id]: false }));
+    }
   };
 
-  const onRequest = (id) => {
-    setQueue(q => q.filter(c => c.id !== id));
-    toast('Changes requested — creator notified.');
+  const onRequest = async (id) => {
+    const reason = window.prompt('Add optional feedback for the creator:', 'Please improve profile details and resubmit.');
+    if (reason === null) return;
+
+    setActionLoading((prev) => ({ ...prev, [id]: true }));
+    try {
+      await apiClient.post(`/admin/reject/${id}`, {
+        rejection_reason_code: 'request_changes',
+        reason: reason || 'Request changes from admin review',
+      });
+      setQueue((q) => q.filter((c) => c.id !== id));
+      toast('Changes requested.');
+    } catch (err) {
+      toast(isApiError(err) ? `${err.code}: ${err.message}` : 'Request changes failed.');
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [id]: false }));
+    }
   };
 
   return (
@@ -76,6 +154,18 @@ const VerificationQueue = () => {
         <Badge variant="admin">{queue.length} Pending</Badge>
       </div>
 
+      {error && (
+        <div style={{ marginBottom: '1rem' }}>
+          <Card variant="glass">{error}</Card>
+        </div>
+      )}
+
+      <div style={{ marginBottom: '1rem' }}>
+        <Button variant="ghost" size="sm" onClick={loadQueue} disabled={loading}>
+          {loading ? 'Refreshing...' : 'Refresh Queue'}
+        </Button>
+      </div>
+
       {/* Column headers */}
       <div className={styles.colHeaders}>
         <span className="micro-label">Creator</span>
@@ -86,7 +176,11 @@ const VerificationQueue = () => {
       </div>
 
       <Card variant="container" padding={false} className={styles.list}>
-        {queue.length === 0 ? (
+        {loading ? (
+          <div className={styles.empty}>
+            <p>Loading verification queue...</p>
+          </div>
+        ) : queue.length === 0 ? (
           <div className={styles.empty}>
             <span>✓</span>
             <p>All creators reviewed. Queue is empty.</p>
@@ -94,7 +188,12 @@ const VerificationQueue = () => {
         ) : (
           queue.map((c, i) => (
             <div key={c.id}>
-              <QueueItem creator={c} onApprove={onApprove} onRequest={onRequest} />
+              <QueueItem
+                creator={c}
+                busy={Boolean(actionLoading[c.id])}
+                onApprove={() => !actionLoading[c.id] && onApprove(c.id)}
+                onRequest={() => !actionLoading[c.id] && onRequest(c.id)}
+              />
               {i < queue.length - 1 && <div className={styles.divider} />}
             </div>
           ))

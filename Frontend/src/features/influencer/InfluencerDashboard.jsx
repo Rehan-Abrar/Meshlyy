@@ -1,18 +1,29 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
+import { apiClient } from '../../utils/apiClient';
 import styles from './InfluencerDashboard.module.css';
 
 // Stats fetched from backend (placeholder until API wired)
-const StatBlock = ({ label, value, sub, icon }) => (
+const StatBlock = ({ label, value, sub }) => (
   <div className={styles.statBlock}>
     <span className={styles.statValue}>{value}</span>
     {sub && <span className={styles.statSub}>{sub}</span>}
     <span className="micro-label">{label}</span>
   </div>
 );
+
+const formatNumber = (value) => {
+  if (value === null || value === undefined) {
+    return '—';
+  }
+  const count = Number(value || 0);
+  if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+  if (count >= 1000) return `${Math.round(count / 1000)}K`;
+  return String(count);
+};
 
 const InfluencerDashboard = () => {
   const { user, updateUser } = useAuth();
@@ -22,6 +33,43 @@ const InfluencerDashboard = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(user?.name || '');
   const [editNiche, setEditNiche] = useState(user?.niche || '');
+  const [stats, setStats] = useState({
+    followerCount: 0,
+    avgLikes: 0,
+    totalViews30d: null,
+    engagementRate: 0,
+    pendingInvites: 0,
+    acceptedCollaborations: 0,
+  });
+
+  useEffect(() => {
+    let ignore = false;
+
+    (async () => {
+      try {
+        const response = await apiClient.get('/influencer/dashboard');
+        const data = response?.data || {};
+        if (!ignore) {
+          setStats({
+            followerCount: Number(data.followerCount || 0),
+            avgLikes: Number(data.avgLikes || 0),
+            totalViews30d: data.totalViews30d === null || data.totalViews30d === undefined
+              ? null
+              : Number(data.totalViews30d),
+            engagementRate: Number(data.engagementRate || 0),
+            pendingInvites: Number(data.pendingInvites || 0),
+            acceptedCollaborations: Number(data.acceptedCollaborations || 0),
+          });
+        }
+      } catch {
+        // Keep dashboard usable with default stats when API is unavailable.
+      }
+    })();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const handlePostSave = () => {
     if (postUrl.trim()) {
@@ -88,12 +136,12 @@ const InfluencerDashboard = () => {
         </div>
       </section>
 
-      {/* ── Live Stats — placeholder, wired to GET /api/v1/influencer/stats ── */}
+      {/* ── Live Stats ── */}
       <div className={styles.statStrip}>
-        <StatBlock label="Followers"  value={user?.audience || '—'} sub="+12.4% ↑" />
-        <StatBlock label="Avg Likes"  value="—"  sub="Pending sync" />
-        <StatBlock label="Total Views" value="—" sub="Last 30 days" />
-        <StatBlock label="Engagement" value="—"  sub="Pending sync" />
+        <StatBlock label="Followers"  value={formatNumber(stats.followerCount)} sub={`${stats.pendingInvites} pending invites`} />
+        <StatBlock label="Avg Likes"  value={formatNumber(stats.avgLikes)}  sub={`${stats.acceptedCollaborations} accepted`} />
+        <StatBlock label="Total Views" value={formatNumber(stats.totalViews30d)} sub="Last 30 days" />
+        <StatBlock label="Engagement" value={`${stats.engagementRate.toFixed(1)}%`}  sub="Current average" />
       </div>
 
       {/* ── Post Latest Content ── */}

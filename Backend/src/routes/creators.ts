@@ -46,7 +46,8 @@ router.get('/', async (req: AuthenticatedRequest, res, next) => {
 router.get('/:id', async (req: AuthenticatedRequest, res, next) => {
   try {
     const creatorId = req.params.id;
-    const creator = await creatorService.getDetail(creatorId);
+    const includeUnverified = String(req.query.include_unverified || '').toLowerCase() === 'true';
+    const creator = await creatorService.getDetail(creatorId, { includeUnverified });
     
     res.json(creator);
   } catch (error) {

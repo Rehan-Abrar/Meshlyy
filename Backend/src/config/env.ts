@@ -23,6 +23,16 @@ const envSchema = z.object({
   // Gemini
   GEMINI_API_KEY: z.string().min(1),
   GEMINI_MODEL: z.string().default('gemini-2.5-flash-lite'),
+
+  // AI provider routing
+  AI_PROVIDER: z.enum(['gemini', 'groq']).default('gemini'),
+
+  // Groq (fallback provider)
+  GROQ_API_KEY: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.string().min(1).optional()
+  ),
+  GROQ_MODEL: z.string().default('llama-3.3-70b-versatile'),
   
   // Apify
   APIFY_API_KEY: z.string().min(1),
@@ -39,6 +49,14 @@ const envSchema = z.object({
   REQUEST_TIMEOUT_MS: z.string().transform(Number).pipe(z.number().min(0)).default('5000'),
   APIFY_TIMEOUT_MS: z.string().transform(Number).pipe(z.number().min(0)).default('30000'),
   GEMINI_TIMEOUT_MS: z.string().transform(Number).pipe(z.number().min(0)).default('30000'),
+  GROQ_TIMEOUT_MS: z.string().transform(Number).pipe(z.number().min(0)).default('30000'),
+
+  // Ingest worker settings
+  INGEST_WORKER_POLL_MS: z.string().transform(Number).pipe(z.number().min(1000)).default('30000'),
+  INGEST_REFRESH_INTERVAL_HOURS: z.string().transform(Number).pipe(z.number().min(1)).default('24'),
+  INGEST_STALE_RUNNING_MINUTES: z.string().transform(Number).pipe(z.number().min(1)).default('20'),
+  INGEST_MAX_RETRIES: z.string().transform(Number).pipe(z.number().min(0).max(10)).default('3'),
+  INGEST_RETRY_BASE_MS: z.string().transform(Number).pipe(z.number().min(1000)).default('60000'),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

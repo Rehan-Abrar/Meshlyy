@@ -110,8 +110,11 @@ export class CreatorService {
    * Get creator detail by ID
    * Includes full profile, stats, and rate cards
    */
-  async getDetail(creatorId: string): Promise<CreatorDetail> {
-    const { data, error } = await supabase
+  async getDetail(
+    creatorId: string,
+    options: { includeUnverified?: boolean } = {}
+  ): Promise<CreatorDetail> {
+    let query = supabase
       .from('influencer_profiles')
       .select(`
         id,
@@ -138,12 +141,16 @@ export class CreatorService {
         )
       `)
       .eq('id', creatorId)
-      .eq('is_deleted', false)
-      .eq('is_verified', true)
-      .single();
+      .eq('is_deleted', false);
+
+    if (!options.includeUnverified) {
+      query = query.eq('is_verified', true);
+    }
+
+    const { data, error } = await query.single();
 
     if (error || !data) {
-      throw Errors.NOT_FOUND('Creator not found or not verified');
+      throw Errors.NOT_FOUND(options.includeUnverified ? 'Creator not found' : 'Creator not found or not verified');
     }
 
     const stats = Array.isArray(data.influencer_stats) 

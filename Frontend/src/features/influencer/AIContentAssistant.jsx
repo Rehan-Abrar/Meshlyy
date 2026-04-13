@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { apiClient, isApiError } from '../../utils/apiClient';
 import styles from './AIContentAssistant.module.css';
 
 const LUMINA_AVATAR = 'AI';
@@ -53,11 +54,40 @@ const AIContentAssistant = () => {
   ]);
   const [input, setInput]     = useState('');
   const [typing, setTyping]   = useState(false);
+  const [campaignId, setCampaignId] = useState('');
+  const [contentFormat, setContentFormat] = useState('reel');
+  const [campaignOptions, setCampaignOptions] = useState([]);
   const bottomRef             = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, typing]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadCampaignOptions() {
+      try {
+        const response = await apiClient.get('/collaborations/incoming');
+        const rows = response.data || [];
+        if (!ignore) {
+          const options = rows
+            .map((row) => row.campaign)
+            .filter(Boolean)
+            .map((campaign) => ({ id: campaign.id, title: campaign.title || campaign.id }));
+          setCampaignOptions(options);
+          if (options[0]?.id) setCampaignId(options[0].id);
+        }
+      } catch {
+        if (!ignore) setCampaignOptions([]);
+      }
+    }
+
+    loadCampaignOptions();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const send = async (text) => {
     const trimmed = (text || input).trim();
@@ -65,7 +95,26 @@ const AIContentAssistant = () => {
     setInput('');
     setMessages(prev => [...prev, { role: 'user', text: trimmed }]);
     setTyping(true);
-    const reply = await getAIResponse(trimmed);
+
+    let reply;
+    if (campaignId) {
+      try {
+        const result = await apiClient.post('/ai/influencer/content-brief', {
+          campaignId,
+          contentFormat,
+        });
+        reply = JSON.stringify(result, null, 2);
+      } catch (error) {
+        const fallback = await getAIResponse(trimmed);
+        const reason = isApiError(error)
+          ? `Live AI brief unavailable (${error.code}: ${error.message}).`
+          : 'Live AI brief unavailable due to a network/runtime issue.';
+        reply = `${reason}\n\nShowing fallback guidance:\n\n${fallback}`;
+      }
+    } else {
+      reply = await getAIResponse(trimmed);
+    }
+
     setTyping(false);
     setMessages(prev => [...prev, { role: 'ai', text: reply }]);
   };
@@ -106,6 +155,21 @@ const AIContentAssistant = () => {
       </div>
 
       {/* Quick prompts */}
+      <div className={styles.promptChips}>
+        <select value={campaignId} onChange={(e) => setCampaignId(e.target.value)} className={styles.chip}>
+          <option value="">Select campaign for live brief</option>
+          {campaignOptions.map((campaign) => (
+            <option key={campaign.id} value={campaign.id}>{campaign.title}</option>
+          ))}
+        </select>
+        <select value={contentFormat} onChange={(e) => setContentFormat(e.target.value)} className={styles.chip}>
+          <option value="reel">reel</option>
+          <option value="post">post</option>
+          <option value="story">story</option>
+          <option value="carousel">carousel</option>
+        </select>
+      </div>
+
       <div className={styles.promptChips}>
         {QUICK_PROMPTS.map(p => (
           <button key={p} className={styles.chip} onClick={() => send(p)}>{p}</button>

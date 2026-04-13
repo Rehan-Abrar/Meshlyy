@@ -5,7 +5,7 @@ import { verifyToken, loadAuthContext, checkRole } from '../middleware/auth';
 import { getBrandId } from '../lib/ownership';
 import { supabase } from '../config/supabase';
 import { Errors } from '../lib/errors';
-import { callGemini } from '../services/GeminiService';
+import { callAI } from '../services/AIProviderService';
 import {
   StrategyOutputSchema,
   BriefOutputSchema,
@@ -32,8 +32,8 @@ import type { AuthenticatedRequest } from '../types/auth';
 
 const router = Router();
 
-// All AI endpoints require BRAND role
-router.use(verifyToken, loadAuthContext, checkRole('BRAND'));
+// AI endpoints require authenticated context; role checks are per-route.
+router.use(verifyToken, loadAuthContext);
 
 /**
  * POST /v1/ai/strategy
@@ -43,7 +43,7 @@ const StrategyRequestSchema = z.object({
   creator_id: z.string().uuid(),
 });
 
-router.post('/strategy', async (req: AuthenticatedRequest, res, next) => {
+router.post('/strategy', checkRole('BRAND'), async (req: AuthenticatedRequest, res, next) => {
   try {
     const { creator_id } = StrategyRequestSchema.parse(req.body);
     const brandId = getBrandId(req.auth!);
@@ -98,8 +98,8 @@ router.post('/strategy', async (req: AuthenticatedRequest, res, next) => {
       creatorBio: creator.bio || '',
     });
 
-    // Call Gemini
-    const result = await callGemini(
+    // Call AI provider (Gemini primary with automatic Groq fallback)
+    const result = await callAI(
       prompt,
       'strategy',
       STRATEGY_PROMPT_VERSION,
@@ -117,6 +117,9 @@ router.post('/strategy', async (req: AuthenticatedRequest, res, next) => {
         tokenCount: result.tokenCount,
         latencyMs: result.latencyMs,
         promptVersion: STRATEGY_PROMPT_VERSION,
+        provider: result.provider,
+        fallbackUsed: result.fallbackUsed,
+        attemptedProviders: result.attemptedProviders,
       },
     });
   } catch (error) {
@@ -134,7 +137,7 @@ const BriefRequestSchema = z.object({
   budget: z.number().positive().optional(),
 });
 
-router.post('/brief', async (req: AuthenticatedRequest, res, next) => {
+router.post('/brief', checkRole('BRAND'), async (req: AuthenticatedRequest, res, next) => {
   try {
     const { campaign_goal, target_audience, budget } = BriefRequestSchema.parse(req.body);
     const brandId = getBrandId(req.auth!);
@@ -160,8 +163,8 @@ router.post('/brief', async (req: AuthenticatedRequest, res, next) => {
       budget,
     });
 
-    // Call Gemini
-    const result = await callGemini(
+    // Call AI provider (Gemini primary with automatic Groq fallback)
+    const result = await callAI(
       prompt,
       'brief',
       BRIEF_PROMPT_VERSION,
@@ -179,6 +182,9 @@ router.post('/brief', async (req: AuthenticatedRequest, res, next) => {
         tokenCount: result.tokenCount,
         latencyMs: result.latencyMs,
         promptVersion: BRIEF_PROMPT_VERSION,
+        provider: result.provider,
+        fallbackUsed: result.fallbackUsed,
+        attemptedProviders: result.attemptedProviders,
       },
     });
   } catch (error) {
@@ -195,7 +201,7 @@ const FitScoreRequestSchema = z.object({
   creator_id: z.string().uuid(),
 });
 
-router.post('/fit-score', async (req: AuthenticatedRequest, res, next) => {
+router.post('/fit-score', checkRole('BRAND'), async (req: AuthenticatedRequest, res, next) => {
   try {
     const { campaign_id, creator_id } = FitScoreRequestSchema.parse(req.body);
     const brandId = getBrandId(req.auth!);
@@ -253,8 +259,8 @@ router.post('/fit-score', async (req: AuthenticatedRequest, res, next) => {
       creatorBio: creator.bio || '',
     });
 
-    // Call Gemini
-    const result = await callGemini(
+    // Call AI provider (Gemini primary with automatic Groq fallback)
+    const result = await callAI(
       prompt,
       'fit_score',
       FIT_SCORE_PROMPT_VERSION,
@@ -272,6 +278,9 @@ router.post('/fit-score', async (req: AuthenticatedRequest, res, next) => {
         tokenCount: result.tokenCount,
         latencyMs: result.latencyMs,
         promptVersion: FIT_SCORE_PROMPT_VERSION,
+        provider: result.provider,
+        fallbackUsed: result.fallbackUsed,
+        attemptedProviders: result.attemptedProviders,
       },
     });
   } catch (error) {
@@ -289,7 +298,7 @@ const ContentBriefRequestSchema = z.object({
   content_format: z.enum(['reel', 'post', 'story', 'carousel']),
 });
 
-router.post('/content-brief', async (req: AuthenticatedRequest, res, next) => {
+router.post('/content-brief', checkRole('BRAND'), async (req: AuthenticatedRequest, res, next) => {
   try {
     const { campaign_id, creator_id, content_format } = ContentBriefRequestSchema.parse(req.body);
     const brandId = getBrandId(req.auth!);
@@ -344,8 +353,8 @@ router.post('/content-brief', async (req: AuthenticatedRequest, res, next) => {
       contentFormat: content_format,
     });
 
-    // Call Gemini
-    const result = await callGemini(
+    // Call AI provider (Gemini primary with automatic Groq fallback)
+    const result = await callAI(
       prompt,
       'content_brief',
       CONTENT_BRIEF_PROMPT_VERSION,
@@ -363,6 +372,105 @@ router.post('/content-brief', async (req: AuthenticatedRequest, res, next) => {
         tokenCount: result.tokenCount,
         latencyMs: result.latencyMs,
         promptVersion: CONTENT_BRIEF_PROMPT_VERSION,
+        provider: result.provider,
+        fallbackUsed: result.fallbackUsed,
+        attemptedProviders: result.attemptedProviders,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /v1/ai/influencer/content-brief
+ * Generate a creator-side content brief for an influencer's invited campaign.
+ */
+const InfluencerContentBriefRequestSchema = z.object({
+  campaignId: z.string().uuid(),
+  contentFormat: z.enum(['reel', 'post', 'story', 'carousel']),
+});
+
+router.post('/influencer/content-brief', checkRole('INFLUENCER'), async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const { campaignId, contentFormat } = InfluencerContentBriefRequestSchema.parse(req.body);
+
+    const { data: influencer } = await supabase
+      .from('influencer_profiles')
+      .select('id, ig_handle, niche_primary')
+      .eq('user_id', req.auth!.userId)
+      .eq('is_deleted', false)
+      .single();
+
+    if (!influencer) {
+      throw Errors.NOT_FOUND('Influencer profile not found');
+    }
+
+    const { data: collaboration } = await supabase
+      .from('collaboration_requests')
+      .select('id, status')
+      .eq('campaign_id', campaignId)
+      .eq('influencer_id', influencer.id)
+      .in('status', ['PENDING', 'ACCEPTED'])
+      .maybeSingle();
+
+    if (!collaboration) {
+      throw Errors.FORBIDDEN('You do not have access to this campaign');
+    }
+
+    const { data: campaign } = await supabase
+      .from('campaigns')
+      .select('id, title, brief_preview, brief_data, brand_id')
+      .eq('id', campaignId)
+      .eq('is_deleted', false)
+      .single();
+
+    if (!campaign) {
+      throw Errors.NOT_FOUND('Campaign not found');
+    }
+
+    const { data: brand } = await supabase
+      .from('brand_profiles')
+      .select('tone_voice')
+      .eq('id', campaign.brand_id)
+      .single();
+
+    if (!brand) {
+      throw Errors.NOT_FOUND('Brand profile not found');
+    }
+
+    const deliverables = campaign.brief_data?.deliverables || ['1 post'];
+
+    const prompt = buildContentBriefPrompt({
+      campaignTitle: campaign.title,
+      campaignObjective: campaign.brief_preview || 'No objective provided',
+      campaignDeliverables: deliverables,
+      brandTone: brand.tone_voice,
+      creatorHandle: influencer.ig_handle,
+      creatorNiche: influencer.niche_primary,
+      contentFormat,
+    });
+
+    const result = await callAI(
+      prompt,
+      'content_brief',
+      CONTENT_BRIEF_PROMPT_VERSION,
+      campaign.brand_id,
+      campaignId,
+      { timeoutMs: 30000 }
+    );
+
+    const validatedOutput = ContentBriefOutputSchema.parse(result.output);
+
+    res.json({
+      ...validatedOutput,
+      _meta: {
+        tokenCount: result.tokenCount,
+        latencyMs: result.latencyMs,
+        promptVersion: CONTENT_BRIEF_PROMPT_VERSION,
+        provider: result.provider,
+        fallbackUsed: result.fallbackUsed,
+        attemptedProviders: result.attemptedProviders,
       },
     });
   } catch (error) {

@@ -32,7 +32,7 @@ const Field = ({ id, label, children, required }) => (
 
 const BrandSignupForm = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { signup } = useAuth();
   const [loading, setLoading] = useState(false);
 
   // States (using a single form object for simplicity in this large form)
@@ -66,6 +66,15 @@ const BrandSignupForm = () => {
     }));
   };
 
+  const parseBudgetRange = (value) => {
+    if (!value) return { min: undefined, max: undefined };
+    if (value === '$1k - $5k') return { min: 1000, max: 5000 };
+    if (value === '$5k - $10k') return { min: 5000, max: 10000 };
+    if (value === '$10k - $25k') return { min: 10000, max: 25000 };
+    if (value === '$25k+') return { min: 25000, max: undefined };
+    return { min: undefined, max: undefined };
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -80,12 +89,30 @@ const BrandSignupForm = () => {
       return;
     }
     setLoading(true);
-    // Mimic API logic
-    const payload = {
-      role: 'brand', email: form.workEmail, name: form.brandName,
-      company: form.companyName, industry: form.industry, budget: form.budget, website: form.website
+
+    const budgetRange = parseBudgetRange(form.budget);
+    const onboardingPayload = {
+      companyName: form.companyName || form.brandName,
+      website: form.website || undefined,
+      industry: form.industry || undefined,
+      targetDemographics: {
+        audienceLocation: form.audienceLocation || undefined,
+        targetAge: form.targetAge || undefined,
+        language: form.language || undefined,
+      },
+      budgetRangeMin: budgetRange.min,
+      budgetRangeMax: budgetRange.max,
+      toneVoice: form.about || undefined,
+      campaignGoals: form.goals,
     };
-    const result = await login(payload);
+
+    const result = await signup({
+      role: 'brand',
+      email: form.workEmail,
+      password: form.password,
+      onboardingPayload,
+    });
+
     if (result.success) navigate('/brand/dashboard');
     else alert(result.error);
     setLoading(false);

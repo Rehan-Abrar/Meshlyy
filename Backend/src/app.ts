@@ -12,9 +12,10 @@ import creatorsRouter from './routes/creators';
 import campaignRouter, { matchedCampaignsRouter } from './routes/campaigns';
 import shortlistRouter from './routes/shortlists';
 import collaborationRouter from './routes/collaborations';
-import influencerRouter from './routes/influencer';
+import influencerRouter from './routes/influencer.js';
 import aiRouter from './routes/ai';
 import profileRouter from './routes/profile';
+import { ingestService } from './services/IngestService';
 
 const app = express();
 
@@ -99,6 +100,8 @@ app.use(errorHandler);
 
 // Start server only when run directly.
 if (require.main === module) {
+  ingestService.startBackgroundWorker();
+
   const server = app.listen(config.PORT, () => {
     logger.info(`🚀 Meshly backend listening on port ${config.PORT}`);
     logger.info(`📝 Environment: ${config.NODE_ENV}`);
@@ -107,6 +110,7 @@ if (require.main === module) {
   // Graceful shutdown
   process.on('SIGTERM', () => {
     logger.info('SIGTERM received, shutting down gracefully');
+    ingestService.stopBackgroundWorker();
     server.close(() => {
       logger.info('Server closed');
       process.exit(0);

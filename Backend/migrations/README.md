@@ -8,6 +8,7 @@ This directory contains SQL migrations for the Meshly backend database schema.
 1. **0001_init_schema.sql** - Creates all tables, enums, indexes, and constraints
 2. **0001_rollback.sql** - Rollback script for init schema  
 3. **0002_seed_data.sql** - Test fixture data for development and testing
+4. **0003_production_ingest_hardening.sql** - Adds production ingest/stat hardening fields and indexes
 
 ## How to Run Migrations
 
@@ -24,6 +25,8 @@ This directory contains SQL migrations for the Meshly backend database schema.
 
 5. After success, run `0002_seed_data.sql` the same way
 
+6. For production-ready ingest/stats behavior, run `0003_production_ingest_hardening.sql`
+
 ### Option 2: Using psql
 
 ```bash
@@ -33,6 +36,8 @@ This directory contains SQL migrations for the Meshly backend database schema.
 psql "postgresql://postgres:[YOUR-PASSWORD]@db.fzpgxfbstdqvydkodgeu.supabase.co:5432/postgres" -f migrations/0001_init_schema.sql
 
 psql "postgresql://postgres:[YOUR-PASSWORD]@db.fzpgxfbstdqvydkodgeu.supabase.co:5432/postgres" -f migrations/0002_seed_data.sql
+
+psql "postgresql://postgres:[YOUR-PASSWORD]@db.fzpgxfbstdqvydkodgeu.supabase.co:5432/postgres" -f migrations/0003_production_ingest_hardening.sql
 ```
 
 ## Rolling Back
