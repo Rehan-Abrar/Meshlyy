@@ -47,8 +47,8 @@ export const Errors = {
     new AppError(401, 'USER_NOT_FOUND', 'User not found in database'),
   
   // 403 Authorization
-  FORBIDDEN: () => 
-    new AppError(403, 'FORBIDDEN', 'You do not have permission to access this resource'),
+  FORBIDDEN: (message: string = 'You do not have permission to access this resource') => 
+    new AppError(403, 'FORBIDDEN', message),
   SUBSCRIPTION_REQUIRED: () => 
     new AppError(403, 'SUBSCRIPTION_REQUIRED', 'Subscription tier insufficient for this feature'),
   ONBOARDING_INCOMPLETE: (redirectStep: number) => 

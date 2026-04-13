@@ -14,8 +14,6 @@ import shortlistRouter from './routes/shortlists';
 import collaborationRouter from './routes/collaborations';
 import influencerRouter from './routes/influencer';
 import aiRouter from './routes/ai';
-import mediaRouter from './routes/media';
-import adminRouter from './routes/admin';
 import profileRouter from './routes/profile';
 
 const app = express();
@@ -85,12 +83,6 @@ app.use('/v1/influencer', ...corePlatformMiddleware, influencerRouter);
 
 // AI Co-Pilot routes
 app.use('/v1/ai', ...corePlatformMiddleware, aiRouter);
-
-// Media upload-signing routes
-app.use('/v1/media', mediaRouter);
-
-// Admin routes
-app.use('/v1/admin', adminRouter);
 
 // 404 catch-all handler (must be before error handler)
 app.use((req, res) => {

@@ -58,7 +58,7 @@ export class CreatorService {
     const cacheKey = this.buildCacheKey(filters, page, limit);
     
     // Check cache
-    const cached = await cacheStore.get(cacheKey);
+    const cached = await cacheStore.get<string>(cacheKey);
     if (cached) {
       logger.info('[CreatorService] Cache HIT for discovery', { cacheKey });
       return JSON.parse(cached);

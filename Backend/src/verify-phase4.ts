@@ -25,10 +25,10 @@ async function verifyPhase4() {
   // 1. Verify services exist
   console.log('📦 Checking Services...');
   try {
-    const { creatorService } = await import('./services/CreatorService');
-    const { campaignService } = await import('./services/CampaignService');
-    const { shortlistService } = await import('./services/ShortlistService');
-    const { collaborationService } = await import('./services/CollaborationService');
+    const { creatorService } = await import('./services/CreatorService.js');
+    const { campaignService } = await import('./services/CampaignService.js');
+    const { shortlistService } = await import('./services/ShortlistService.js');
+    const { collaborationService } = await import('./services/CollaborationService.js');
     
     check('CreatorService', !!creatorService, 'Service exists and exports singleton');
     check('CampaignService', !!campaignService, 'Service exists and exports singleton');
@@ -41,10 +41,10 @@ async function verifyPhase4() {
   // 2. Verify routes exist
   console.log('\n🛣️  Checking Routes...');
   try {
-    const creatorsRouter = await import('./routes/creators');
-    const campaignsRouter = await import('./routes/campaigns');
-    const shortlistsRouter = await import('./routes/shortlists');
-    const collaborationsRouter = await import('./routes/collaborations');
+    const creatorsRouter = await import('./routes/creators.js');
+    const campaignsRouter = await import('./routes/campaigns.js');
+    const shortlistsRouter = await import('./routes/shortlists.js');
+    const collaborationsRouter = await import('./routes/collaborations.js');
     
     check('Creators Routes', !!creatorsRouter.default, 'Router exported');
     check('Campaigns Routes', !!campaignsRouter.default, 'Router exported');
@@ -57,11 +57,19 @@ async function verifyPhase4() {
   // 3. Verify helper utilities
   console.log('\n🔧 Checking Utilities...');
   try {
-    const { assertBrandOwnership, getBrandId } = await import('./lib/ownership');
-    const { parsePaginationParams, buildPaginatedResponse } = await import('./lib/pagination');
+    const { assertBrandOwnership, getBrandId } = await import('./lib/ownership.js');
+    const { parsePaginationParams, buildPaginatedResponse } = await import('./lib/pagination.js');
     
-    check('Ownership Helpers', !!(assertBrandOwnership && getBrandId), 'Both helpers exported');
-    check('Pagination Helpers', !!(parsePaginationParams && buildPaginatedResponse), 'Both helpers exported');
+    check(
+      'Ownership Helpers',
+      typeof assertBrandOwnership === 'function' && typeof getBrandId === 'function',
+      'Both helpers exported'
+    );
+    check(
+      'Pagination Helpers',
+      typeof parsePaginationParams === 'function' && typeof buildPaginatedResponse === 'function',
+      'Both helpers exported'
+    );
   } catch (error) {
     check('Utilities', false, `Failed to import utilities: ${error}`);
   }
