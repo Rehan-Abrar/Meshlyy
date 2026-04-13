@@ -12,6 +12,28 @@ const INITIAL_MESSAGES = [
   },
 ];
 
+const SMALL_TALK_PATTERN = /^(hi+|hello+|hey+|yo+|hola+|salam+|assalam\s?o\s?alaikum|helloo+)\b/i;
+const CAMPAIGN_INTENT_PATTERN = /(campaign|brief|launch|promot|audience|influencer|creator|reel|story|post|cta|budget|objective|goal|kpi|brand|product|target|marketing|awareness|conversion|engagement)/i;
+
+function isSmallTalk(prompt) {
+  return SMALL_TALK_PATTERN.test(prompt.trim());
+}
+
+function hasCampaignIntent(prompt) {
+  return CAMPAIGN_INTENT_PATTERN.test(prompt);
+}
+
+function buildSmallTalkReply() {
+  return 'Hey! I can help you build a campaign brief. Tell me your product, target audience, objective, and budget (optional).';
+}
+
+function buildGuidanceReply() {
+  return [
+    'I can help with campaign strategy and brief generation.',
+    'Try: "Launch a campaign for Gen Z in Lahore with 20k budget".',
+  ].join('\n');
+}
+
 function formatBriefResponse(result) {
   const lines = [];
 
@@ -31,12 +53,6 @@ function formatBriefResponse(result) {
 
   if (result?.timeline) {
     lines.push(`Timeline: ${result.timeline}`);
-  }
-
-  const provider = result?._meta?.provider;
-  if (provider) {
-    const fallback = result?._meta?.fallbackUsed ? ' (fallback used)' : '';
-    lines.push(`Provider: ${provider}${fallback}`);
   }
 
   return lines.join('\n') || 'AI returned an empty brief. Please try a more specific prompt.';
@@ -71,10 +87,21 @@ const BrandAIAssistant = () => {
 
     setMessages((prev) => [...prev, { role: 'user', text: prompt }]);
     setInput('');
+
+    if (isSmallTalk(prompt)) {
+      setMessages((prev) => [...prev, { role: 'assistant', text: buildSmallTalkReply() }]);
+      return;
+    }
+
+    if (!hasCampaignIntent(prompt)) {
+      setMessages((prev) => [...prev, { role: 'assistant', text: buildGuidanceReply() }]);
+      return;
+    }
+
     setIsTyping(true);
 
     try {
-      const campaignGoal = prompt.length >= 10
+      const campaignGoal = prompt.length >= 12
         ? prompt
         : `Create a campaign brief for ${prompt} with clear objective, deliverables, and CTA.`;
 
@@ -86,7 +113,7 @@ const BrandAIAssistant = () => {
       setMessages((prev) => [...prev, { role: 'assistant', text: response }]);
     } catch (error) {
       const response = isApiError(error)
-        ? `Live AI error (${error.code}: ${error.message}).\n\n${buildFallbackReply(prompt, user?.industry)}`
+        ? `AI is temporarily unavailable right now.\n\n${buildFallbackReply(prompt, user?.industry)}`
         : buildFallbackReply(prompt, user?.industry);
 
       setMessages((prev) => [...prev, { role: 'assistant', text: response }]);
