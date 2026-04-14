@@ -6,6 +6,7 @@ import { timeoutMiddleware, haltOnTimeout } from './middleware/timeout';
 import { errorHandler } from './middleware/errorHandler';
 import { verifyToken, loadAuthContext } from './middleware/auth';
 import { onboardingGuard } from './middleware/onboardingGuard';
+import { aiBudgetMiddleware } from './middleware/budget';
 import healthRouter from './routes/health';
 import onboardingRouter from './routes/onboarding';
 import creatorsRouter from './routes/creators';
@@ -83,7 +84,7 @@ app.use('/v1/collaborations', ...corePlatformMiddleware, collaborationRouter);
 app.use('/v1/influencer', ...corePlatformMiddleware, influencerRouter);
 
 // AI Co-Pilot routes
-app.use('/v1/ai', ...corePlatformMiddleware, aiRouter);
+app.use('/v1/ai', ...corePlatformMiddleware, aiBudgetMiddleware, aiRouter);
 
 // 404 catch-all handler (must be before error handler)
 app.use((req, res) => {
@@ -115,6 +116,10 @@ if (require.main === module) {
       logger.info('Server closed');
       process.exit(0);
     });
+  });
+
+  process.on('unhandledRejection', (reason) => {
+    logger.error('Unhandled promise rejection', { reason });
   });
 }
 

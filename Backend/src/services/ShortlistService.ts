@@ -16,6 +16,7 @@ export interface Shortlist {
   influencer_id: string;
   campaign_id: string | null;
   label: string | null;
+  is_deleted: boolean;
   created_at: string;
 }
 
@@ -66,6 +67,7 @@ export class ShortlistService {
       .eq('brand_id', brandId)
       .eq('influencer_id', input.influencerId)
       .eq('campaign_id', input.campaignId || null)
+      .eq('is_deleted', false)
       .maybeSingle();
 
     if (existing) {
@@ -103,6 +105,7 @@ export class ShortlistService {
       .from('shortlists')
       .select('brand_id')
       .eq('id', shortlistId)
+      .eq('is_deleted', false)
       .single();
 
     if (!shortlist) {
@@ -111,10 +114,11 @@ export class ShortlistService {
 
     assertBrandOwnership(authContext, shortlist.brand_id);
 
-    // Delete entry
+    // Soft-delete entry
     const { error } = await supabase
       .from('shortlists')
-      .delete()
+      .update({ is_deleted: true })
+      .eq('is_deleted', false)
       .eq('id', shortlistId);
 
     if (error) {
@@ -166,6 +170,7 @@ export class ShortlistService {
         )
       `)
       .eq('brand_id', brandId)
+      .eq('is_deleted', false)
       .order('created_at', { ascending: false });
 
     if (campaignId !== undefined) {

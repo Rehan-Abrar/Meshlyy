@@ -1,6 +1,25 @@
+import { supabase } from './supabaseClient';
+
 const API_BASE = (import.meta.env.VITE_API_URL || 'https://meshlyy-backend.onrender.com/v1').replace(/\/$/, '');
 
 let accessTokenGetter = () => null;
+let handlingUnauthorized = false;
+
+async function handleUnauthorizedResponse() {
+  if (handlingUnauthorized) return;
+
+  handlingUnauthorized = true;
+  try {
+    await supabase.auth.signOut();
+  } catch {
+    // Ignore sign-out failures and continue redirecting to login.
+  } finally {
+    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      window.location.assign('/login');
+    }
+    handlingUnauthorized = false;
+  }
+}
 
 export function setAccessTokenGetter(getter) {
   accessTokenGetter = typeof getter === 'function' ? getter : () => null;
@@ -71,6 +90,10 @@ async function request(path, options = {}) {
   const json = await parseJsonSafe(response);
 
   if (!response.ok) {
+    if (response.status === 401) {
+      await handleUnauthorizedResponse();
+    }
+
     const backendError = json?.error;
     throw new ApiError({
       status: response.status,
