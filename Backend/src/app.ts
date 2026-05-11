@@ -16,6 +16,8 @@ import collaborationRouter from './routes/collaborations';
 import influencerRouter from './routes/influencer.js';
 import aiRouter from './routes/ai';
 import profileRouter from './routes/profile';
+import mediaRouter from './routes/media';
+import waitlistRouter from './routes/waitlist';
 import { ingestService } from './services/IngestService';
 
 const app = express();
@@ -58,11 +60,17 @@ app.use(haltOnTimeout);
 // Health check (always public)
 app.use('/v1/health', healthRouter);
 
+// Waitlist (public, no auth)
+app.use('/v1/waitlist', waitlistRouter);
+
 // Onboarding routes
 app.use('/v1/onboarding', onboardingRouter);
 
 // Profile routes (authenticated; no onboarding gate)
 app.use('/v1/profile', profileRouter);
+
+// Media upload signature routes (authenticated; onboarding-safe)
+app.use('/v1/media', mediaRouter);
 
 // Core platform guard stack (auth context + onboarding completion)
 const corePlatformMiddleware = [verifyToken, loadAuthContext, onboardingGuard];

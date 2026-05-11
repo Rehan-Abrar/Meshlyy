@@ -260,4 +260,145 @@
     width: 280px;
     margin: 0 auto;
   }
+  .waitlistInputRow {
+    flex-direction: column;
+  }
+  .waitlistInput {
+    min-width: unset;
+  }
+}
+
+/* ── WAITLIST SECTION ── */
+.waitlistSection {
+  padding: var(--space-xl) var(--space-lg);
+  background: var(--color-surface);
+  border-top: 1px solid var(--ghost-border);
+  border-bottom: 1px solid var(--ghost-border);
+}
+
+.waitlistInner {
+  max-width: 680px;
+  margin: 0 auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.waitlistHeadline {
+  font-family: var(--font-heading);
+  font-size: var(--text-h1);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-on-surface);
+  margin-top: 0.25rem;
+}
+
+.waitlistSub {
+  font-size: var(--text-body);
+  color: var(--color-on-surface-variant);
+  max-width: 50ch;
+  line-height: 1.5;
+}
+
+.waitlistForm {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: var(--space-xs);
+}
+
+.waitlistRoleToggle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.roleToggleBtn {
+  padding: 0.375rem 1rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--ghost-border);
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-on-surface-variant);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.roleToggleBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.roleToggleActive {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary-strong);
+}
+
+.waitlistInputRow {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 480px;
+}
+
+.waitlistInput {
+  flex: 1;
+  min-width: 240px;
+  padding: 0.625rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--ghost-border);
+  background: var(--color-surface-container-low);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  color: var(--color-on-surface);
+  transition: border-color var(--transition-fast);
+}
+
+.waitlistInput:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.waitlistInput::placeholder {
+  color: var(--color-on-surface-light);
+}
+
+.waitlistErrorText {
+  color: var(--color-error);
+  font-size: var(--text-sm);
+  margin-top: 0.25rem;
+}
+
+.waitlistSuccessBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 1rem 1.5rem;
+  border-radius: var(--radius-md);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: var(--color-success);
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.waitlistSuccessIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-success);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
 }

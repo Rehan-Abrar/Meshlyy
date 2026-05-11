@@ -1,6 +1,7 @@
 /* ==========================================================
    Meshlyy — Global Styles | The Neural Lattice Design System
    ========================================================== */
+@import './skeleton.css';
 
 *, *::before, *::after {
   box-sizing: border-box;

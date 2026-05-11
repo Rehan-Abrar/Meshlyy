@@ -3,10 +3,10 @@ import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
-import { apiClient } from '../../utils/apiClient';
+import Card from '../../components/common/Card';
+import { apiClient, isApiError } from '../../utils/apiClient';
 import styles from './InfluencerDashboard.module.css';
 
-// Stats fetched from backend (placeholder until API wired)
 const StatBlock = ({ label, value, sub }) => (
   <div className={styles.statBlock}>
     <span className={styles.statValue}>{value}</span>
@@ -25,14 +25,39 @@ const formatNumber = (value) => {
   return String(count);
 };
 
+const isValidUrl = (value) => {
+  try {
+    // eslint-disable-next-line no-new
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const InfluencerDashboard = () => {
   const { user, updateUser } = useAuth();
-  const [postUrl, setPostUrl] = useState('');
-  const [savedPost, setSavedPost] = useState('');
-  
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [dashboardError, setDashboardError] = useState('');
+  const [message, setMessage] = useState('');
+
   const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(user?.name || '');
-  const [editNiche, setEditNiche] = useState(user?.niche || '');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPortfolio, setSavingPortfolio] = useState(false);
+
+  const [profile, setProfile] = useState({
+    igHandle: '',
+    nichePrimary: '',
+    bio: '',
+    portfolioUrl: '',
+    mediaKitUrl: '',
+    isVerified: false,
+    verificationStatus: '',
+  });
+  const [editNiche, setEditNiche] = useState('');
+  const [editBio, setEditBio] = useState('');
+  const [portfolioUrl, setPortfolioUrl] = useState('');
+
   const [stats, setStats] = useState({
     followerCount: 0,
     avgLikes: 0,
@@ -47,8 +72,14 @@ const InfluencerDashboard = () => {
 
     (async () => {
       try {
-        const response = await apiClient.get('/influencer/dashboard');
-        const data = response?.data || {};
+        const [dashboardResponse, profileResponse] = await Promise.all([
+          apiClient.get('/influencer/dashboard'),
+          apiClient.get('/profile/me'),
+        ]);
+
+        const data = dashboardResponse?.data || {};
+        const roleProfile = profileResponse?.data?.role_profile || {};
+
         if (!ignore) {
           setStats({
             followerCount: Number(data.followerCount || 0),
@@ -60,9 +91,30 @@ const InfluencerDashboard = () => {
             pendingInvites: Number(data.pendingInvites || 0),
             acceptedCollaborations: Number(data.acceptedCollaborations || 0),
           });
+
+          const resolvedProfile = {
+            igHandle: roleProfile.ig_handle || '',
+            nichePrimary: roleProfile.niche_primary || '',
+            bio: roleProfile.bio || '',
+            portfolioUrl: roleProfile.portfolio_url || '',
+            mediaKitUrl: roleProfile.media_kit_url || '',
+            isVerified: Boolean(roleProfile.is_verified),
+            verificationStatus: roleProfile.verification_status || '',
+          };
+
+          setProfile(resolvedProfile);
+          setEditNiche(resolvedProfile.nichePrimary);
+          setEditBio(resolvedProfile.bio);
+          setPortfolioUrl(resolvedProfile.portfolioUrl);
         }
-      } catch {
-        // Keep dashboard usable with default stats when API is unavailable.
+      } catch (error) {
+        if (!ignore) {
+          setDashboardError(isApiError(error) ? `${error.code}: ${error.message}` : 'Failed to load influencer dashboard data.');
+        }
+      } finally {
+        if (!ignore) {
+          setDashboardLoading(false);
+        }
       }
     })();
 
@@ -71,22 +123,99 @@ const InfluencerDashboard = () => {
     };
   }, []);
 
-  const handlePostSave = () => {
-    if (postUrl.trim()) {
-      setSavedPost(postUrl.trim());
-      setPostUrl('');
+  const handleProfileSave = async () => {
+    const nextNiche = editNiche.trim();
+    const nextBio = editBio.trim();
+
+    const updates = {};
+    if (nextNiche && nextNiche !== profile.nichePrimary) {
+      updates.nichePrimary = nextNiche;
+    }
+    if (nextBio !== profile.bio) {
+      updates.bio = nextBio;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      setIsEditing(false);
+      setMessage('No profile changes to save.');
+      return;
+    }
+
+    setSavingProfile(true);
+    setMessage('');
+    setDashboardError('');
+
+    try {
+      const response = await apiClient.patch('/profile/me', updates);
+      const updated = response?.data?.role_profile || {};
+
+      const nextProfile = {
+        ...profile,
+        nichePrimary: updated.niche_primary || nextNiche,
+        bio: updated.bio || nextBio,
+      };
+
+      setProfile(nextProfile);
+      setEditNiche(nextProfile.nichePrimary);
+      setEditBio(nextProfile.bio);
+      if (updateUser) {
+        updateUser({ niche: nextProfile.nichePrimary });
+      }
+      setIsEditing(false);
+      setMessage('Profile updated.');
+    } catch (error) {
+      setDashboardError(isApiError(error) ? `${error.code}: ${error.message}` : 'Unable to update profile.');
+    } finally {
+      setSavingProfile(false);
     }
   };
 
-  const handleProfileSave = () => {
-    if (updateUser) {
-      updateUser({ name: editName, niche: editNiche });
+  const handlePortfolioSave = async () => {
+    const nextUrl = portfolioUrl.trim();
+
+    if (!nextUrl) {
+      setDashboardError('Portfolio URL is required.');
+      return;
     }
-    setIsEditing(false);
+
+    if (!isValidUrl(nextUrl)) {
+      setDashboardError('Please provide a valid portfolio URL.');
+      return;
+    }
+
+    setSavingPortfolio(true);
+    setDashboardError('');
+    setMessage('');
+
+    try {
+      const response = await apiClient.patch('/profile/me', { portfolioUrl: nextUrl });
+      const updated = response?.data?.role_profile || {};
+      const resolvedUrl = updated.portfolio_url || nextUrl;
+      setProfile((prev) => ({ ...prev, portfolioUrl: resolvedUrl }));
+      setPortfolioUrl(resolvedUrl);
+      setMessage('Portfolio link updated.');
+    } catch (error) {
+      setDashboardError(isApiError(error) ? `${error.code}: ${error.message}` : 'Unable to update portfolio link.');
+    } finally {
+      setSavingPortfolio(false);
+    }
   };
+
+  const verificationLabel = profile.isVerified
+    ? 'VERIFIED CREATOR'
+    : (profile.verificationStatus ? `${profile.verificationStatus} REVIEW` : 'VERIFICATION IN PROGRESS');
+
+  const discoveryTitle = profile.isVerified ? 'Ready for Discovery' : 'Verification in Progress';
+  const discoverySub = profile.isVerified
+    ? `Your profile is visible to brands right now. You currently have ${stats.pendingInvites} pending invitations.`
+    : 'Your profile is being reviewed. Keep your niche, bio, and portfolio link updated for faster approval.';
 
   return (
     <div className={styles.page}>
+
+      {dashboardError && <Card variant="glass">{dashboardError}</Card>}
+      {message && <Card variant="glass">{message}</Card>}
+      {dashboardLoading && <Card variant="glass">Loading influencer profile...</Card>}
 
       {/* ── Profile Hero ── */}
       <section className={styles.hero} aria-labelledby="influencer-name">
@@ -102,37 +231,55 @@ const InfluencerDashboard = () => {
               <input 
                 value={editNiche} 
                 onChange={(e) => setEditNiche(e.target.value)} 
-                placeholder="Your Niche"
+                placeholder="Primary niche"
                 style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--glass-border)', background: 'var(--color-surface-container-high)', color: 'var(--color-on-surface)' }}
               />
-              <input 
-                value={editName} 
-                onChange={(e) => setEditName(e.target.value)} 
-                placeholder="Your Name"
-                style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--glass-border)', background: 'var(--color-surface-container-high)', color: 'var(--color-on-surface)' }}
+              <textarea
+                value={editBio}
+                onChange={(e) => setEditBio(e.target.value)}
+                placeholder="Write your creator bio"
+                rows={3}
+                style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--glass-border)', background: 'var(--color-surface-container-high)', color: 'var(--color-on-surface)', resize: 'vertical' }}
               />
             </div>
           ) : (
             <>
-              <span className={styles.heroTagline}>{user?.niche || 'Lifestyle & Tech Enthusiast'}</span>
+              <span className={styles.heroTagline}>{profile.igHandle ? `@${profile.igHandle}` : verificationLabel}</span>
               <h1 id="influencer-name" className={styles.heroName}>{user?.name || 'Creator'}</h1>
             </>
           )}
           <p className={styles.heroBio}>
-            Creating authentic content and partnering with global brands.
+            {profile.bio || 'Complete your profile bio to improve campaign matching.'}
           </p>
           <div className={styles.heroTags}>
-            <Badge variant="primary">{user?.niche || 'Lifestyle'}</Badge>
-            <Badge variant="secondary">Instagram</Badge>
+            <Badge variant="primary">{profile.nichePrimary || user?.niche || 'General'}</Badge>
+            <Badge variant={profile.isVerified ? 'verified' : 'secondary'}>
+              {profile.isVerified ? 'Verified' : (profile.verificationStatus || 'Pending').toUpperCase()}
+            </Badge>
           </div>
         </div>
         <div className={styles.heroActions}>
           {isEditing ? (
-            <Button variant="primary" onClick={handleProfileSave}>Save Profile</Button>
+            <>
+              <Button variant="primary" onClick={handleProfileSave} disabled={savingProfile}>
+                {savingProfile ? 'Saving...' : 'Save Profile'}
+              </Button>
+              <Button variant="ghost" onClick={() => setIsEditing(false)} disabled={savingProfile}>Cancel</Button>
+            </>
           ) : (
             <Button variant="secondary" onClick={() => setIsEditing(true)}>Edit Profile</Button>
           )}
-          <Button variant="ghost">Media Kit</Button>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              if (profile.mediaKitUrl) {
+                window.open(profile.mediaKitUrl, '_blank', 'noopener,noreferrer');
+              }
+            }}
+            disabled={!profile.mediaKitUrl}
+          >
+            Media Kit
+          </Button>
         </div>
       </section>
 
@@ -144,27 +291,29 @@ const InfluencerDashboard = () => {
         <StatBlock label="Engagement" value={`${stats.engagementRate.toFixed(1)}%`}  sub="Current average" />
       </div>
 
-      {/* ── Post Latest Content ── */}
+      {/* ── Portfolio Link ── */}
       <section className={styles.section} aria-labelledby="post-heading">
-        <h2 id="post-heading" className={styles.sectionTitle}>Latest Post</h2>
+        <h2 id="post-heading" className={styles.sectionTitle}>Portfolio Link</h2>
         <div className={styles.postWidget}>
           <p className={styles.postDesc}>
-            Share your most recent Instagram post to display on your public profile.
+            Keep your portfolio link up to date so brands can evaluate your work.
           </p>
           <div className={styles.postInputRow}>
             <input
               className={styles.postInput}
               type="url"
-              placeholder="Paste your Instagram post URL…"
-              value={postUrl}
-              onChange={e => setPostUrl(e.target.value)}
-              aria-label="Instagram post URL"
+              placeholder="Paste your portfolio URL…"
+              value={portfolioUrl}
+              onChange={e => setPortfolioUrl(e.target.value)}
+              aria-label="Portfolio URL"
             />
-            <Button variant="primary" onClick={handlePostSave}>Save Post</Button>
+            <Button variant="primary" onClick={handlePortfolioSave} disabled={savingPortfolio}>
+              {savingPortfolio ? 'Saving...' : 'Save Link'}
+            </Button>
           </div>
-          {savedPost && (
-            <a href={savedPost} target="_blank" rel="noreferrer" className={styles.savedPostLink}>
-              Post linked: {savedPost}
+          {profile.portfolioUrl && (
+            <a href={profile.portfolioUrl} target="_blank" rel="noreferrer" className={styles.savedPostLink}>
+              Portfolio linked: {profile.portfolioUrl}
             </a>
           )}
         </div>
@@ -188,15 +337,18 @@ const InfluencerDashboard = () => {
 
       {/* ── Discovery Banner ── */}
       <section className={styles.discoveryBanner} aria-label="Discovery status">
-        <span className={styles.discoveryPill}>ACTIVE DISCOVERY MODE</span>
-        <h2 className={styles.discoveryTitle}>Ready for Discovery</h2>
+        <span className={styles.discoveryPill}>{verificationLabel}</span>
+        <h2 className={styles.discoveryTitle}>{discoveryTitle}</h2>
         <p className={styles.discoverySub}>
-          Your profile is currently prioritized in the Meshlyy marketplace.
-          Brands are browsing your portfolio in the 'Rising Talent' category.
+          {discoverySub}
         </p>
         <div className={styles.discoveryActions}>
-          <Button variant="secondary">Update Availability</Button>
-          <Button variant="ghost">Go Invisible</Button>
+          <Link to="/influencer/invitations">
+            <Button variant="secondary">View Invitations</Button>
+          </Link>
+          <Link to="/influencer/campaigns">
+            <Button variant="ghost">Browse Campaigns</Button>
+          </Link>
         </div>
       </section>
     </div>

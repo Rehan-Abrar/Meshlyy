@@ -1,5 +1,9 @@
 # Meshlyy Project Progress Log
 
+## Change Documentation Policy (ACTIVE)
+- [x] Every code/config/documentation change made by the AI agent must be logged in this file.
+- [x] Each log entry must include date, scope, files touched, and verification evidence.
+
 ## Phase 6: Brand Dashboard & Discovery Overhaul (COMPLETED)
 - [x] Brand Dashboard: Added inline profile editing (Name, Company, Industry).
 - [x] Brand Dashboard: Added "My Campaigns" and "Notifications" sections.
@@ -14,5 +18,98 @@
 - [x] Workflow Preservation: Ensured all root-level system folders (.gsd, .agent) and docs (PRD, PROJECT_RULES) were kept intact at the absolute root.
 - [x] Documentation: Created `Frontend/CHANGES.md` to map the finalized architecture.
 
+## 2026-04-14 Change Log (Backend + Frontend)
+
+### Scope
+- Influencer hardcoded-data removal and full functional wiring to live backend APIs.
+- Matched campaign backend reliability fix.
+- Influencer AI access fix through budget middleware.
+- Session-level API caching/invalidation behavior integration across auth transitions.
+
+### Files Touched
+- `Backend/src/services/CampaignService.ts`
+- `Backend/src/middleware/budget.ts`
+- `Frontend/src/features/influencer/InfluencerDashboard.jsx`
+- `Frontend/src/features/influencer/PublicCampaigns.jsx`
+- `Frontend/src/features/influencer/AIContentAssistant.jsx`
+- `Frontend/src/utils/apiClient.js`
+- `Frontend/src/context/AuthContext.jsx`
+- `Frontend/src/features/public/InfluencerSignupForm.jsx`
+
+### Summary of Changes
+- Replaced static influencer campaign/dashboard data with live API-driven rendering.
+- Wired campaign apply flow from influencer UI to `POST /v1/collaborations/apply`.
+- Removed simulated AI output path and used live influencer brief generation endpoint.
+- Fixed matched campaigns query path to prevent 500 database errors.
+- Updated AI budget middleware to support authenticated influencer usage paths.
+- Preserved session-level GET caching and invalidation behavior for consistency.
+
+### Verification Evidence
+- Backend typecheck: `npm run typecheck` (pass)
+- Frontend production build: `npm run build` (pass)
+- Influencer endpoint smoke (dashboard/profile/incoming/matched): pass
+- Influencer apply + AI brief smoke: pass
+
+## 2026-04-14 Repo-wide TODO/Placeholder Implementation Pass
+
+### Scope
+- Searched repo-wide for TODO/placeholder/stub markers.
+- Implemented remaining actionable runtime placeholders without changing UI design.
+
+### Files Touched
+- `Backend/src/middleware/auth.ts`
+- `Backend/src/middleware/verifyToken.ts`
+- `Backend/src/middleware/loadAuthContext.ts`
+- `Backend/src/middleware/subscriptionGuard.ts`
+- `Backend/src/config/featureGates.ts`
+- `Frontend/src/utils/constants.js`
+
+### Summary of Changes
+- Replaced legacy placeholder middleware implementations by delegating `verifyToken` and `loadAuthContext` modules to the production auth middleware.
+- Replaced stub `subscriptionGuard` module with shared auth subscription guard implementation.
+- Implemented real subscription-gating helpers in feature gates config:
+	- env-controlled activation via `SUBSCRIPTION_GATING_ACTIVE`
+	- subscription tier normalization
+	- feature access checks by role/tier
+- Enhanced auth context loading to include latest subscription tier/status when available.
+- Implemented dynamic onboarding redirect step based on `onboardingStep` (instead of hardcoded step 1).
+- Removed frontend API-base placeholder fallback and aligned default API base to `http://localhost:3000/v1`.
+
+### Remaining Non-Actionable Placeholder Notes
+- `Backend/src/phase4-integration.test.ts` contains placeholder token comments in test scaffolding only.
+- `Backend/src/stores/InMemory*Store.ts` comments indicate intentional post-MVP Redis migration guidance.
+
+### Verification Evidence
+- Backend typecheck: `npm run typecheck` (pass)
+- Frontend production build: `npm run build` (pass)
+- Backend source scan after fixes: no actionable TODO/stub markers left in runtime frontend source; backend remaining markers are test/post-MVP notes only.
+
+## 2026-04-14 Media Upload Endpoint + Cloudinary Scoping Fix
+
+### Scope
+- Implemented missing media upload signature endpoint required by production-readiness audit.
+- Enforced server-side role/user folder scoping and upload-kind path whitelist.
+
+### Files Touched
+- `Backend/src/routes/media.ts`
+- `Backend/src/app.ts`
+- `docs/production-readiness-audit.md`
+
+### Summary of Changes
+- Added authenticated endpoint: `GET /v1/media/upload-url`.
+- Endpoint behavior:
+	- Requires auth context (`verifyToken` + `loadAuthContext`).
+	- Whitelists `kind` values: `avatar`, `logo`, `portfolio`, `media-kit`.
+	- Builds folder path server-side only as `meshlyy/{role}/{userId}/{kind}`.
+	- Enforces resource-type allowlist per upload kind.
+	- Returns Cloudinary signed upload payload with timestamp-based expiry semantics.
+	- Returns format and max-size constraints for client-side enforcement.
+- Wired route in app bootstrap via `/v1/media`.
+- Updated audit finding from FAIL to PASS and removed the media endpoint gap from critical blockers.
+
+### Verification Evidence
+- Backend typecheck: `npm run typecheck` (pass)
+- Authenticated smoke test against `/v1/media/upload-url?kind=media-kit`: `200`, signature present, scoped folder returned, allowed format list returned.
+
 ---
-*Last Updated: 2026-04-12*
+*Last Updated: 2026-04-14*

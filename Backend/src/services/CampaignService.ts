@@ -38,7 +38,7 @@ export interface Campaign {
   niche_targets: string[] | null;
   visibility: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export class CampaignService {
@@ -252,11 +252,15 @@ export class CampaignService {
     limit: number = 20
   ): Promise<PaginatedResponse<Omit<Campaign, 'brief_data'>>> {
     // Get influencer profile
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('influencer_profiles')
       .select('niche_primary, niche_secondary')
       .eq('id', influencerId)
       .single();
+
+    if (profileError) {
+      throw Errors.DATABASE_ERROR(profileError.message);
+    }
 
     if (!profile) {
       throw Errors.NOT_FOUND('Influencer profile not found');
@@ -264,24 +268,38 @@ export class CampaignService {
 
     const { page: validPage, limit: validLimit, offset } = parsePaginationParams({ page, limit });
 
-    // Find campaigns with matching niches
-    const niches = [profile.niche_primary, profile.niche_secondary].filter(Boolean);
-    
-    const { data, error, count } = await supabase
+    // Find campaigns with matching niches.
+    // NOTE: `niche_targets` is JSONB and can vary in shape, so we filter in app-layer
+    // to avoid fragile PostgREST contains-operator behavior across environments.
+    const niches = [profile.niche_primary, profile.niche_secondary]
+      .filter(Boolean)
+      .map((niche) => String(niche).toLowerCase());
+
+    const { data, error } = await supabase
       .from('campaigns')
-      .select('id, brand_id, title, status, brief_preview, budget, currency, niche_targets, visibility, created_at, updated_at', { count: 'exact' })
+      .select('id, brand_id, title, status, brief_preview, budget, currency, niche_targets, visibility, created_at')
       .eq('status', 'ACTIVE')
       .eq('visibility', 'MATCHED')
       .eq('is_deleted', false)
-      .contains('niche_targets', niches)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + validLimit - 1);
+      .order('created_at', { ascending: false });
 
     if (error) {
-      throw Errors.DATABASE_ERROR();
+      throw Errors.DATABASE_ERROR(error.message);
     }
 
-    return buildPaginatedResponse(data || [], validPage, validLimit, count || 0);
+    const filtered = (data || []).filter((campaign) => {
+      if (niches.length === 0) return true;
+
+      const targets = Array.isArray(campaign.niche_targets)
+        ? campaign.niche_targets.map((target) => String(target).toLowerCase())
+        : [];
+
+      if (targets.length === 0) return false;
+      return niches.some((niche) => targets.includes(niche));
+    });
+
+    const paged = filtered.slice(offset, offset + validLimit);
+    return buildPaginatedResponse(paged, validPage, validLimit, filtered.length);
   }
 }
 

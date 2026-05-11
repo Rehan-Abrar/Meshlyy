@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import Select from '../../components/common/Select';
 import styles from './BrandSignupForm.module.css';
 import logo from '../../assets/logo.png';
+import FileUpload from '../../components/common/FileUpload';
 
 const BRAND_INDUSTRIES = [
   'E-commerce', 'Fashion & Apparel', 'Beauty & Cosmetics', 'Health & Wellness',
@@ -21,12 +22,13 @@ const AUDIENCE_LOCATIONS = ['National (Pakistan)', 'Provincial', 'Regional', 'Gl
 const PAK_PROVINCES = ['Punjab', 'Sindh', 'Khyber Pakhtunkhwa', 'Balochistan', 'Gilgit-Baltistan', 'AJK', 'ICT'];
 
 // Field component to keep code clean
-const Field = ({ id, label, children, required }) => (
+const Field = ({ id, label, children, required, error }) => (
   <div className={styles.fieldGroup}>
     <label htmlFor={id} className={styles.fieldLabel}>
       {label} {required && <span style={{color: 'var(--color-primary)'}}>*</span>}
     </label>
     {children}
+    {error && <span className={styles.fieldError}>{error}</span>}
   </div>
 );
 
@@ -34,12 +36,14 @@ const BrandSignupForm = () => {
   const navigate = useNavigate();
   const { signup } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState('');
 
   // States (using a single form object for simplicity in this large form)
   const [form, setForm] = useState({
     fullName: '', workEmail: '', phone: '', password: '', confirmPassword: '', city: '', province: '',
     brandName: '', companyName: '', businessType: 'B2C', industry: '', website: '', instagramUrl: '',
-    businessSize: '', yearsInBusiness: '', about: '',
+    businessSize: '', yearsInBusiness: '', about: '', logoUrl: '',
     goals: [], campaignType: '', budget: '', creatorPref: '', startDate: '',
     category: '', audienceLocation: '', targetAge: '', language: '', requirements: '',
     registeredBusiness: false, taxId: '',
@@ -55,6 +59,8 @@ const BrandSignupForm = () => {
     const checked = e.target ? e.target.checked : undefined;
     
     setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    // Clear field error on change
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
   const toggleGoal = (goal) => {
@@ -75,19 +81,43 @@ const BrandSignupForm = () => {
     return { min: undefined, max: undefined };
   };
 
+  const validate = () => {
+    const newErrors = {};
+    if (!form.fullName.trim()) newErrors.fullName = 'Full name is required';
+    if (!form.workEmail.trim()) {
+      newErrors.workEmail = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.workEmail)) {
+      newErrors.workEmail = 'Please enter a valid email address';
+    }
+    if (!form.password) {
+      newErrors.password = 'Password is required';
+    } else if (form.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+    if (!form.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (form.password !== form.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+    if (!form.brandName.trim()) newErrors.brandName = 'Brand name is required';
+    if (!form.industry) newErrors.industry = 'Industry is required';
+    if (!form.agreedTerms) newErrors.agreedTerms = 'You must agree to the Terms of Service';
+    if (!form.agreedConsent) newErrors.agreedConsent = 'You must consent to data processing';
+    return newErrors;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError('');
+    setErrors({});
     
-    // Strict Validation Check
-    if (!form.fullName || !form.workEmail || !form.password || !form.confirmPassword || !form.brandName || !form.industry) {
-      alert('Please fill out all required fields marked with an asterisk (*).');
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    
-    if (!form.agreedTerms || !form.agreedConsent) {
-      alert('You must agree to the Terms and Consent.');
-      return;
-    }
+
     setLoading(true);
 
     const budgetRange = parseBudgetRange(form.budget);
@@ -113,8 +143,12 @@ const BrandSignupForm = () => {
       onboardingPayload,
     });
 
-    if (result.success) navigate('/brand/dashboard');
-    else alert(result.error);
+    if (result.success) {
+      navigate('/brand/dashboard');
+    } else {
+      setFormError(result.error);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
     setLoading(false);
   };
 
@@ -128,6 +162,8 @@ const BrandSignupForm = () => {
         </p>
       </div>
 
+      {formError && <div className={styles.formError} role="alert">{formError}</div>}
+
       <form className={styles.formContainer} onSubmit={handleSubmit}>
         
         {/* Basic Account Info */}
@@ -137,23 +173,23 @@ const BrandSignupForm = () => {
             <h2 className={styles.sectionTitle}>Basic Account Info</h2>
           </div>
           <div className={styles.grid2}>
-            <Field id="fullName" label="Full Name" required>
-              <input type="text" id="fullName" name="fullName" className={styles.input} placeholder="John Doe" value={form.fullName} onChange={handleChange} required />
+            <Field id="fullName" label="Full Name" required error={errors.fullName}>
+              <input type="text" id="fullName" name="fullName" className={`${styles.input} ${errors.fullName ? styles.inputError : ''}`} placeholder="John Doe" value={form.fullName} onChange={handleChange} />
             </Field>
-            <Field id="workEmail" label="Work Email" required>
-              <input type="email" id="workEmail" name="workEmail" className={styles.input} placeholder="john@brand.com" value={form.workEmail} onChange={handleChange} required />
+            <Field id="workEmail" label="Work Email" required error={errors.workEmail}>
+              <input type="email" id="workEmail" name="workEmail" className={`${styles.input} ${errors.workEmail ? styles.inputError : ''}`} placeholder="john@brand.com" value={form.workEmail} onChange={handleChange} />
             </Field>
             <Field id="phone" label="Phone">
               <input type="tel" id="phone" name="phone" className={styles.input} placeholder="+1 (000) 000-0000" value={form.phone} onChange={handleChange} />
             </Field>
-            <Field id="password" label="Password" required>
-              <input type="password" id="password" name="password" className={styles.input} placeholder="••••••••" value={form.password} onChange={handleChange} required />
+            <Field id="password" label="Password" required error={errors.password}>
+              <input type="password" id="password" name="password" className={`${styles.input} ${errors.password ? styles.inputError : ''}`} placeholder="••••••••" value={form.password} onChange={handleChange} />
             </Field>
-            <Field id="confirmPassword" label="Confirm Password" required>
-              <input type="password" id="confirmPassword" name="confirmPassword" className={styles.input} placeholder="••••••••" value={form.confirmPassword} onChange={handleChange} required />
+            <Field id="confirmPassword" label="Confirm Password" required error={errors.confirmPassword}>
+              <input type="password" id="confirmPassword" name="confirmPassword" className={`${styles.input} ${errors.confirmPassword ? styles.inputError : ''}`} placeholder="••••••••" value={form.confirmPassword} onChange={handleChange} />
             </Field>
           </div>
-          <div className={`${styles.grid2} ${styles.mt-4}`}>
+          <div className={`${styles.grid2} ${styles['mt-4']}`}>
             <Field id="province" label="Province">
               <Select id="province" name="province" options={PAK_PROVINCES} value={form.province} onChange={handleChange} placeholder="Select Province..." />
             </Field>
@@ -170,8 +206,8 @@ const BrandSignupForm = () => {
             <h2 className={styles.sectionTitle}>Brand & Business Details</h2>
           </div>
           <div className={styles.grid2}>
-            <Field id="brandName" label="Brand Name" required>
-              <input type="text" id="brandName" name="brandName" className={styles.input} placeholder="Meshlyy Retail" value={form.brandName} onChange={handleChange} required />
+            <Field id="brandName" label="Brand Name" required error={errors.brandName}>
+              <input type="text" id="brandName" name="brandName" className={`${styles.input} ${errors.brandName ? styles.inputError : ''}`} placeholder="Meshlyy Retail" value={form.brandName} onChange={handleChange} />
             </Field>
             <Field id="companyName" label="Company Name">
               <input type="text" id="companyName" name="companyName" className={styles.input} placeholder="Meshlyy Global Inc." value={form.companyName} onChange={handleChange} />
@@ -179,8 +215,8 @@ const BrandSignupForm = () => {
             <Field id="businessType" label="Business Type">
               <Select id="businessType" name="businessType" options={['B2C', 'B2B', 'DTC']} value={form.businessType} onChange={handleChange} placeholder="Select Type..." />
             </Field>
-            <Field id="industry" label="Industry" required>
-              <Select id="industry" name="industry" options={BRAND_INDUSTRIES} value={form.industry} onChange={handleChange} placeholder="Select Industry..." required />
+            <Field id="industry" label="Industry" required error={errors.industry}>
+              <Select id="industry" name="industry" options={BRAND_INDUSTRIES} value={form.industry} onChange={handleChange} placeholder="Select Industry..." />
             </Field>
             <Field id="website" label="Website">
               <input type="url" id="website" name="website" className={styles.input} placeholder="https://meshlyy.com" value={form.website} onChange={handleChange} />
@@ -195,17 +231,19 @@ const BrandSignupForm = () => {
               <input type="number" id="yearsInBusiness" name="yearsInBusiness" className={styles.input} placeholder="3" value={form.yearsInBusiness} onChange={handleChange} />
             </Field>
           </div>
-          <div className={`${styles.fieldGroup} ${styles.mt-4}`}>
+          <div className={`${styles.fieldGroup} ${styles['mt-4']}`}>
             <label className={styles.fieldLabel}>About the Company (Brand Bio)</label>
             <textarea name="about" className={styles.textarea} placeholder="Tell us about your brand mission..." value={form.about} onChange={handleChange} />
           </div>
-          <div className={`${styles.fieldGroup} ${styles.mt-4}`}>
-            <label className={styles.fieldLabel}>Brand Logo <span style={{color: 'var(--color-primary)'}}>*</span></label>
-            <div className={styles.uploadBox}>
-              <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem', opacity: 0.5 }}>+</div>
-              <div className={styles.uploadText}>Click to upload or drag and drop</div>
-              <div className={styles.uploadSub}>SVG, PNG, JPG (max 2MB)</div>
-            </div>
+          <div className={`${styles.fieldGroup} ${styles['mt-4']}`}>
+            <label className={styles.fieldLabel}>Brand Logo</label>
+            <FileUpload
+              kind="logo"
+              accept="image/*"
+              maxSizeMB={2}
+              onUploadComplete={(url) => setForm(prev => ({ ...prev, logoUrl: url }))}
+              previewShape="square"
+            />
           </div>
         </div>
 
@@ -226,7 +264,7 @@ const BrandSignupForm = () => {
               ))}
             </div>
           </Field>
-          <div className={`${styles.grid2} ${styles.mt-4}`}>
+          <div className={`${styles.grid2} ${styles['mt-4']}`}>
             <Field id="campaignType" label="Campaign Type">
               <Select id="campaignType" name="campaignType" options={CAMPAIGN_TYPES} value={form.campaignType} onChange={handleChange} placeholder="Select Type..." />
             </Field>
@@ -262,7 +300,7 @@ const BrandSignupForm = () => {
               <input type="text" id="language" name="language" className={styles.input} placeholder="Urdu, English, etc." value={form.language} onChange={handleChange} />
             </Field>
           </div>
-          <div className={`${styles.fieldGroup} ${styles.mt-4}`}>
+          <div className={`${styles.fieldGroup} ${styles['mt-4']}`}>
             <label className={styles.fieldLabel}>Specific Requirements</label>
             <textarea name="requirements" className={styles.textarea} placeholder="Any specific creator traits or restrictions?" value={form.requirements} onChange={handleChange} />
           </div>
@@ -281,7 +319,7 @@ const BrandSignupForm = () => {
             </div>
             <input type="checkbox" name="registeredBusiness" checked={form.registeredBusiness} onChange={handleChange} style={{ width: '2rem', height: '2rem' }} />
           </div>
-          <div className={`${styles.fieldGroup} ${styles.mt-4}`}>
+          <div className={`${styles.fieldGroup} ${styles['mt-4']}`}>
             <label className={styles.fieldLabel}>Tax Registration #</label>
             <input type="text" name="taxId" className={styles.input} placeholder="NTN / SECP Number" value={form.taxId} onChange={handleChange} />
           </div>
@@ -312,17 +350,19 @@ const BrandSignupForm = () => {
         {/* Terms and Submit */}
         <div className={styles.termsGroup}>
           <label className={styles.checkboxRow}>
-            <input type="checkbox" name="agreedTerms" checked={form.agreedTerms} onChange={handleChange} required />
+            <input type="checkbox" name="agreedTerms" checked={form.agreedTerms} onChange={handleChange} />
             <span className={styles.checkboxText}>
               I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
             </span>
           </label>
+          {errors.agreedTerms && <span className={styles.fieldError}>{errors.agreedTerms}</span>}
           <label className={styles.checkboxRow}>
-            <input type="checkbox" name="agreedConsent" checked={form.agreedConsent} onChange={handleChange} required />
+            <input type="checkbox" name="agreedConsent" checked={form.agreedConsent} onChange={handleChange} />
             <span className={styles.checkboxText}>
               I consent to the processing of my brand data to receive AI-powered creator matches.
             </span>
           </label>
+          {errors.agreedConsent && <span className={styles.fieldError}>{errors.agreedConsent}</span>}
           <button type="submit" className={styles.submitBtn} disabled={loading}>
             {loading ? 'Creating...' : 'Create Brand Profile'}
           </button>

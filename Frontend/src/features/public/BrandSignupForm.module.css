@@ -1,3 +1,27 @@
+.fieldError {
+  display: block;
+  color: var(--color-error);
+  font-size: var(--text-micro);
+  margin-top: 0.375rem;
+  font-weight: 500;
+}
+
+.formError {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: var(--color-error);
+  padding: 0.875rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  margin: 0 auto var(--space-md);
+  max-width: 900px;
+  width: 100%;
+}
+
+.inputError {
+  border-color: var(--color-error) !important;
+}
+
 .page {
   min-height: calc(100vh - 4rem);
   display: flex;

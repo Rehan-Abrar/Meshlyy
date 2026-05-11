@@ -3,6 +3,13 @@ import { supabase } from './supabaseClient.js';
 const API_BASE = (import.meta.env.VITE_API_URL || 'https://meshlyy-backend.onrender.com/v1').replace(/\/$/, '');
 
 let accessTokenGetter = () => null;
+const responseCache = new Map();
+const inFlightGetRequests = new Map();
+
+export function clearApiCache() {
+  responseCache.clear();
+  inFlightGetRequests.clear();
+}
 
 export function setAccessTokenGetter(getter) {
   accessTokenGetter = typeof getter === 'function' ? getter : () => null;
@@ -49,18 +56,20 @@ function buildHeaders(headers = {}, hasBody = false) {
   return merged;
 }
 
-async function request(path, options = {}) {
-  const {
-    method = 'GET',
-    headers,
-    body,
-    signal,
-  } = options;
+function normalizePath(path) {
+  return path.startsWith('/') ? path : `/${path}`;
+}
 
-  const hasBody = body !== undefined && body !== null;
-  const finalHeaders = buildHeaders(headers, hasBody);
+function buildCacheKey(path, token, customKey) {
+  if (customKey) return String(customKey);
+  const normalizedPath = normalizePath(path);
+  return `GET:${normalizedPath}:token:${token || 'anon'}`;
+}
 
-  const response = await fetch(`${API_BASE}${path.startsWith('/') ? path : `/${path}`}`, {
+async function executeRequest(path, method, finalHeaders, hasBody, body, signal) {
+  const normalizedPath = normalizePath(path);
+
+  const response = await fetch(`${API_BASE}${normalizedPath}`, {
     method,
     headers: finalHeaders,
     body: hasBody ? JSON.stringify(body) : undefined,
@@ -69,11 +78,11 @@ async function request(path, options = {}) {
 
   const retryAfterHeader = response.headers.get('Retry-After');
   const retryAfter = retryAfterHeader ? Number(retryAfterHeader) : null;
-
   const json = await parseJsonSafe(response);
 
   if (!response.ok) {
     if (response.status === 401) {
+      clearApiCache();
       try {
         await supabase.auth.signOut();
       } catch {
@@ -100,8 +109,64 @@ async function request(path, options = {}) {
   return json;
 }
 
+async function request(path, options = {}) {
+  const {
+    method = 'GET',
+    headers,
+    body,
+    signal,
+    useCache = true,
+    forceRefresh = false,
+    cacheKey,
+  } = options;
+
+  const upperMethod = String(method).toUpperCase();
+
+  const hasBody = body !== undefined && body !== null;
+  const finalHeaders = buildHeaders(headers, hasBody);
+
+  const token = accessTokenGetter?.() || '';
+  const shouldCacheGet = upperMethod === 'GET' && useCache && !signal;
+  const key = shouldCacheGet ? buildCacheKey(path, token, cacheKey) : null;
+
+  if (shouldCacheGet && !forceRefresh) {
+    if (responseCache.has(key)) {
+      return responseCache.get(key);
+    }
+
+    if (inFlightGetRequests.has(key)) {
+      return inFlightGetRequests.get(key);
+    }
+  }
+
+  const requestPromise = executeRequest(path, upperMethod, finalHeaders, hasBody, body, signal);
+
+  if (shouldCacheGet) {
+    const trackedRequest = requestPromise
+      .then((result) => {
+        responseCache.set(key, result);
+        return result;
+      })
+      .finally(() => {
+        inFlightGetRequests.delete(key);
+      });
+
+    inFlightGetRequests.set(key, trackedRequest);
+    return trackedRequest;
+  }
+
+  const result = await requestPromise;
+
+  if (upperMethod !== 'GET') {
+    clearApiCache();
+  }
+
+  return result;
+}
+
 export const apiClient = {
   request,
+  clearCache: clearApiCache,
   get: (path, options = {}) => request(path, { ...options, method: 'GET' }),
   post: (path, body, options = {}) => request(path, { ...options, method: 'POST', body }),
   patch: (path, body, options = {}) => request(path, { ...options, method: 'PATCH', body }),

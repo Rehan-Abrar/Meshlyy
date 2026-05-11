@@ -7,6 +7,7 @@ import CircularProgress from '../../components/common/CircularProgress';
 import Badge from '../../components/common/Badge';
 import Input from '../../components/common/Input';
 import { apiClient, isApiError } from '../../utils/apiClient';
+import Toast from '../../components/common/Toast';
 import styles from './BrandDashboard.module.css';
 
 const formatFollowers = (value) => {
@@ -21,13 +22,65 @@ const normalizeEngagementPercent = (value) => {
   return numeric <= 1 ? numeric * 100 : numeric;
 };
 
-const KPICard = ({ label, value, delta, icon }) => (
+const calculateFitScore = (engagementRate) => {
+  const engagement = normalizeEngagementPercent(engagementRate);
+  return Math.max(40, Math.min(98, Math.round(engagement * 12)));
+};
+
+const normalizeCampaignStatus = (status) => {
+  const value = String(status || 'DRAFT').toUpperCase();
+  if (['ACTIVE', 'DRAFT', 'PAUSED', 'COMPLETED'].includes(value)) return value;
+  return 'DRAFT';
+};
+
+const getCampaignBadgeVariant = (status) => {
+  const normalized = normalizeCampaignStatus(status);
+  if (normalized === 'ACTIVE') return 'verified';
+  if (normalized === 'PAUSED') return 'primary';
+  if (normalized === 'COMPLETED') return 'default';
+  return 'secondary';
+};
+
+const formatCompactCurrency = (amount, currency = 'USD') => {
+  const value = Number(amount);
+  if (!Number.isFinite(value) || value <= 0) return null;
+
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency,
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    }).format(value);
+  } catch {
+    return `${currency} ${Math.round(value)}`;
+  }
+};
+
+const formatCampaignMeta = (campaign) => {
+  const status = normalizeCampaignStatus(campaign.status);
+  if (status === 'DRAFT') return 'Not launched';
+
+  const details = [];
+  const visibility = String(campaign.visibility || '').toUpperCase();
+  if (visibility === 'PUBLIC') details.push('Public');
+  if (visibility === 'MATCHED') details.push('Matched');
+
+  const budget = formatCompactCurrency(campaign.budget, campaign.currency || 'USD');
+  if (budget) details.push(`Budget ${budget}`);
+
+  return details.length > 0 ? details.join(' · ') : 'Live campaign';
+};
+
+const KPICard = ({ label, value, delta = null, icon }) => (
   <Card variant="container" className={styles.kpiCard}>
     <div className={styles.kpiTop}>
       <span className={styles.kpiIcon}>{icon}</span>
-      <span className={`${styles.kpiDelta} ${delta >= 0 ? styles['kpiDelta--up'] : styles['kpiDelta--down']}`}>
-        {delta >= 0 ? '↑' : '↓'} {Math.abs(delta)}%
-      </span>
+      {typeof delta === 'number' && (
+        <span className={`${styles.kpiDelta} ${delta >= 0 ? styles['kpiDelta--up'] : styles['kpiDelta--down']}`}>
+          {delta >= 0 ? '↑' : '↓'} {Math.abs(delta)}%
+        </span>
+      )}
     </div>
     <p className={styles.kpiValue}>{value}</p>
     <p className={styles.kpiLabel}>{label}</p>
@@ -37,8 +90,7 @@ const KPICard = ({ label, value, delta, icon }) => (
 const CreatorCard = ({ creator, onShortlist, pendingShortlistId }) => {
   const handle = creator.ig_handle ? `@${creator.ig_handle}` : 'Unknown creator';
   const avatar = handle.replace('@', '').slice(0, 2).toUpperCase() || 'CR';
-  const engagement = normalizeEngagementPercent(creator.engagement_rate);
-  const fit = Math.max(40, Math.min(98, Math.round(engagement * 12)));
+  const fit = calculateFitScore(creator.engagement_rate);
 
   return (
   <Card variant="standard" className={styles.creatorCard}>
@@ -84,48 +136,100 @@ const BrandDashboard = () => {
   const [aiLoading, setAiLoading] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [toast, setToast] = useState(null);
   const [editName, setEditName] = useState(user?.name || '');
   const [editCompany, setEditCompany] = useState(user?.company || '');
   const [editIndustry, setEditIndustry] = useState(user?.industry || '');
   const [topCreators, setTopCreators] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
+  const [metrics, setMetrics] = useState({
+    activeCampaigns: 0,
+    creatorsMatched: 0,
+    shortlisted: 0,
+    avgFitScore: null,
+  });
   const [creatorLoading, setCreatorLoading] = useState(true);
+  const [campaignLoading, setCampaignLoading] = useState(true);
   const [actionMessage, setActionMessage] = useState('');
   const [pendingShortlistId, setPendingShortlistId] = useState(null);
 
   useEffect(() => {
     let ignore = false;
 
-    const loadTopCreators = async () => {
+    const loadDashboardData = async () => {
       setCreatorLoading(true);
+      setCampaignLoading(true);
       try {
-        const response = await apiClient.get('/creators?page=1&limit=4');
+        const [creatorResponse, campaignResponse, activeCampaignResponse, shortlistResponse] = await Promise.all([
+          apiClient.get('/creators?page=1&limit=4'),
+          apiClient.get('/campaigns?page=1&limit=2'),
+          apiClient.get('/campaigns?status=ACTIVE&page=1&limit=1'),
+          apiClient.get('/shortlists'),
+        ]);
+
+        const creators = Array.isArray(creatorResponse?.data) ? creatorResponse.data : [];
+        const latestCampaigns = Array.isArray(campaignResponse?.data) ? campaignResponse.data : [];
+        const shortlists = Array.isArray(shortlistResponse?.data) ? shortlistResponse.data : [];
+
+        const fitScores = creators.map((creator) => calculateFitScore(creator.engagement_rate));
+        const avgFitScore = fitScores.length > 0
+          ? Math.round(fitScores.reduce((sum, score) => sum + score, 0) / fitScores.length)
+          : null;
+
         if (!ignore) {
-          setTopCreators(Array.isArray(response.data) ? response.data : []);
+          setTopCreators(creators);
+          setCampaigns(latestCampaigns);
+          setMetrics({
+            activeCampaigns: Number(activeCampaignResponse?.pagination?.total || 0),
+            creatorsMatched: Number(creatorResponse?.pagination?.total || creators.length || 0),
+            shortlisted: shortlists.length,
+            avgFitScore,
+          });
         }
       } catch (err) {
         if (!ignore) {
-          setActionMessage(isApiError(err) ? `${err.code}: ${err.message}` : 'Failed to load creators');
+          setActionMessage(isApiError(err) ? `${err.code}: ${err.message}` : 'Failed to load dashboard data');
           setTopCreators([]);
+          setCampaigns([]);
+          setMetrics({
+            activeCampaigns: 0,
+            creatorsMatched: 0,
+            shortlisted: 0,
+            avgFitScore: null,
+          });
         }
       } finally {
         if (!ignore) {
           setCreatorLoading(false);
+          setCampaignLoading(false);
         }
       }
     };
 
-    loadTopCreators();
+    loadDashboardData();
 
     return () => {
       ignore = true;
     };
   }, []);
 
-  const handleProfileSave = () => {
-    if (updateUser) {
-      updateUser({ name: editName, company: editCompany, industry: editIndustry });
+  const handleProfileSave = async () => {
+    setIsSavingProfile(true);
+    try {
+      const payload = { name: editName, company: editCompany, industry: editIndustry };
+      await apiClient.patch('/profile/me', payload);
+      if (updateUser) {
+        updateUser(payload);
+      }
+      setToast({ message: 'Profile updated successfully!', type: 'success' });
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      setToast({ message: 'Failed to update profile.', type: 'error' });
+    } finally {
+      setIsSavingProfile(false);
     }
-    setIsEditing(false);
   };
 
   const handleAskAI = async () => {
@@ -191,6 +295,10 @@ const BrandDashboard = () => {
     try {
       await apiClient.post('/shortlists', { influencer_id: creatorId });
       setActionMessage('Creator added to shortlist.');
+      setMetrics((previous) => ({
+        ...previous,
+        shortlisted: previous.shortlisted + 1,
+      }));
     } catch (err) {
       if (isApiError(err) && err.code === 'CONFLICT') {
         setActionMessage('Creator is already shortlisted.');
@@ -216,7 +324,9 @@ const BrandDashboard = () => {
                 <Input size="sm" label="Industry" value={editIndustry} onChange={e => setEditIndustry(e.target.value)} />
               </div>
               <div className={styles.editActions}>
-                <Button variant="primary" size="sm" onClick={handleProfileSave}>Save Brand Profile</Button>
+                <Button variant="primary" size="sm" onClick={handleProfileSave} disabled={isSavingProfile}>
+                  {isSavingProfile ? 'Saving...' : 'Save Brand Profile'}
+                </Button>
                 <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)}>Cancel</Button>
               </div>
             </div>
@@ -239,10 +349,14 @@ const BrandDashboard = () => {
 
       {/* KPIs */}
       <section className={styles.kpiGrid} aria-label="Key metrics">
-        <KPICard label="Active Campaigns" value="4"   delta={12}  icon="◉" />
-        <KPICard label="Creators Matched"  value="128" delta={23}  icon="◎" />
-        <KPICard label="Shortlisted"       value="18"  delta={5}   icon="◇" />
-        <KPICard label="Avg. Fit Score"    value="86%" delta={-2}  icon="✦" />
+        <KPICard label="Active Campaigns" value={metrics.activeCampaigns} icon="◉" />
+        <KPICard label="Creators Matched" value={metrics.creatorsMatched} icon="◎" />
+        <KPICard label="Shortlisted" value={metrics.shortlisted} icon="◇" />
+        <KPICard
+          label="Avg. Fit Score"
+          value={metrics.avgFitScore === null ? '--' : `${metrics.avgFitScore}%`}
+          icon="✦"
+        />
       </section>
 
       <div className={styles.mainGrid}>
@@ -311,16 +425,25 @@ const BrandDashboard = () => {
         <section className={styles.campaignsColumn} aria-labelledby="campaigns-heading">
           <h2 id="campaigns-heading" className={styles.sectionTitle}>My Campaigns</h2>
           <div className={styles.campaignList}>
-            <Card variant="container" className={styles.campaignMiniCard}>
-              <Badge variant="verified">Active</Badge>
-              <h4 className={styles.miniTitle}>Summer Glow 2025</h4>
-              <p className={styles.miniMeta}>12 Creators · $5.4K Spent</p>
-            </Card>
-            <Card variant="container" className={styles.campaignMiniCard}>
-              <Badge variant="secondary">Draft</Badge>
-              <h4 className={styles.miniTitle}>Holiday Gift Guide</h4>
-              <p className={styles.miniMeta}>Not launched</p>
-            </Card>
+            {campaignLoading ? (
+              <Card variant="glass">Loading campaigns...</Card>
+            ) : campaigns.length > 0 ? (
+              campaigns.map((campaign) => {
+                const status = normalizeCampaignStatus(campaign.status);
+                return (
+                  <Card key={campaign.id} variant="container" className={styles.campaignMiniCard}>
+                    <Badge variant={getCampaignBadgeVariant(status)}>{status}</Badge>
+                    <h4 className={styles.miniTitle}>{campaign.title || 'Untitled campaign'}</h4>
+                    <p className={styles.miniMeta}>{formatCampaignMeta(campaign)}</p>
+                  </Card>
+                );
+              })
+            ) : (
+              <Card variant="glass" className={styles.campaignMiniCard}>
+                <h4 className={styles.miniTitle}>No campaigns yet</h4>
+                <p className={styles.miniMeta}>Create your first campaign to start matching creators.</p>
+              </Card>
+            )}
             <Link to="/brand/campaigns/new" className={styles.viewAllLink}>View all campaigns →</Link>
           </div>
         </section>
@@ -353,6 +476,13 @@ const BrandDashboard = () => {
           )}
         </div>
       </section>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };

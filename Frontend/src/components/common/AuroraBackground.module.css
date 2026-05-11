@@ -69,18 +69,40 @@
   -webkit-mask-image: radial-gradient(ellipse at 80% 0%, black 10%, transparent 65%);
 }
 
+/* Paused state for when component is off-screen */
+.paused {
+  animation-play-state: paused !important;
+}
+
+.paused::after {
+  animation-play-state: paused !important;
+}
+
 .content {
   position: relative;
   z-index: 1;
   width: 100%;
 }
 
+/* Mobile: reduce GPU cost */
 @media (max-width: 768px) {
   .aurora {
     filter: blur(6px);
     animation: aurora 120s linear infinite; /* Slower animation to save CPU */
   }
+  /* Remove ::after pseudo-element on mobile to halve GPU work */
   .aurora::after {
-    animation: aurora 120s linear infinite;
+    display: none;
+  }
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .aurora {
+    animation: none;
+    opacity: 0.2;
+  }
+  .aurora::after {
+    animation: none;
   }
 }

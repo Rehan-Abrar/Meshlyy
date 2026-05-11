@@ -3,8 +3,16 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifySupabaseJWT } from '../config/supabase';
 import { supabase } from '../config/supabase';
-import { AuthContext, UserRole } from '../types';
+import { AuthContext, SubscriptionTier, UserRole } from '../types';
 import { Errors, sendError, AppError } from '../lib/errors';
+import {
+  hasFeatureAccess,
+  isSubscriptionGatingActive,
+  normalizeSubscriptionTier,
+  type BrandFeatureGate,
+  type InfluencerFeatureGate,
+  type FeatureGateRole,
+} from '../config/featureGates';
 
 type SupabaseJwtUser = {
   id: string;
@@ -29,6 +37,31 @@ function deriveCompanyName(email: string | undefined, userId: string): string {
       .replace(/\b\w/g, (char) => char.toUpperCase());
   }
   return `Brand ${userId.slice(0, 8)}`;
+}
+
+function resolveFeatureGateForRequest(req: Request, role: FeatureGateRole): BrandFeatureGate | InfluencerFeatureGate | null {
+  const path = req.originalUrl || req.path || '';
+  const method = String(req.method || 'GET').toUpperCase();
+
+  if (role === 'BRAND') {
+    if (path.startsWith('/v1/creators')) return 'discovery';
+    if (path.startsWith('/v1/ai')) return 'ai_copilot';
+    if (path.startsWith('/v1/shortlists')) return 'shortlists';
+    if (path.startsWith('/v1/campaigns') && ['POST', 'PATCH', 'DELETE'].includes(method)) {
+      return 'campaign_create';
+    }
+    return null;
+  }
+
+  if (path.startsWith('/v1/campaigns/matched') || path.startsWith('/v1/collaborations')) {
+    return 'campaign_feed';
+  }
+
+  if (path.startsWith('/v1/profile') && ['POST', 'PATCH'].includes(method)) {
+    return 'portfolio_upload';
+  }
+
+  return null;
 }
 
 // Extend Express Request to include authContext
@@ -193,6 +226,20 @@ export async function loadAuthContext(req: Request, res: Response, next: NextFun
         authContext.brandId = brandProfile.id;
       }
     }
+
+    // Load latest subscription context when available.
+    const { data: subscription, error: subscriptionError } = await supabase
+      .from('subscriptions')
+      .select('tier, status')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!subscriptionError && subscription) {
+      authContext.subscriptionTier = normalizeSubscriptionTier(subscription.tier);
+      authContext.subscriptionStatus = String(subscription.status || 'TRIAL').toUpperCase() as AuthContext['subscriptionStatus'];
+    }
     
     // Attach to request
     req.authContext = authContext;
@@ -245,11 +292,15 @@ export function onboardingGuard(req: Request, res: Response, next: NextFunction)
   }
   
   if (!req.authContext.onboardingCompleted) {
+    const redirectStep = req.authContext.onboardingStep && req.authContext.onboardingStep > 0
+      ? req.authContext.onboardingStep
+      : 1;
+
     return res.status(403).json({
       error: {
         code: 'ONBOARDING_INCOMPLETE',
         message: 'Please complete onboarding',
-        redirect: '/onboarding/step/1' // Simplified - should use actual step from DB
+        redirect: `/onboarding/step/${redirectStep}`
       }
     });
   }
@@ -257,18 +308,32 @@ export function onboardingGuard(req: Request, res: Response, next: NextFunction)
   next();
 }
 
-/**
- * Middleware 5: subscriptionGuard (MVP: pass-through)
- * Post-MVP: checks req.authContext.subscriptionTier against FEATURE_GATES
- * MVP behavior: always next()
- */
 export function subscriptionGuard(req: Request, res: Response, next: NextFunction) {
-  // MVP: No gating, always pass through
-  next();
-  
-  // Post-MVP implementation:
-  // const requiredTier = getRequiredTier(req.path, req.authContext.role);
-  // if (!hasAccess(req.authContext.subscriptionTier, requiredTier)) {
-  //   return sendError(res, 403, 'SUBSCRIPTION_REQUIRED', 'Subscription tier insufficient');
-  // }
+  if (!isSubscriptionGatingActive) {
+    return next();
+  }
+
+  if (!req.authContext) {
+    return sendError(res, 401, 'INVALID_TOKEN', 'Authentication required');
+  }
+
+  if (req.authContext.role === 'ADMIN') {
+    return next();
+  }
+
+  const role = req.authContext.role as FeatureGateRole;
+  const feature = resolveFeatureGateForRequest(req, role);
+
+  if (!feature) {
+    return next();
+  }
+
+  const tier = normalizeSubscriptionTier(req.authContext.subscriptionTier as SubscriptionTier | undefined);
+  const hasAccess = hasFeatureAccess(role, feature, tier);
+
+  if (!hasAccess) {
+    return sendError(res, 403, 'SUBSCRIPTION_REQUIRED', 'Subscription tier insufficient for this feature');
+  }
+
+  return next();
 }

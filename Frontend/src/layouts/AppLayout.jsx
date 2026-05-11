@@ -35,17 +35,17 @@ const AppLayout = () => {
   return (
     <div className={styles.layout}>
       {/* Global Background Watermark */}
-      <div 
+      {/* Global Background Watermark */}
+      <img 
+        src={elementImg}
+        alt=""
+        loading="lazy"
         style={{
           position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundImage: `url(${elementImg})`,
-          backgroundRepeat: 'no-repeat',
-          backgroundPosition: 'center center',
-          backgroundSize: '50vw',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '50vw',
           opacity: 0.05,
           pointerEvents: 'none',
           zIndex: 0

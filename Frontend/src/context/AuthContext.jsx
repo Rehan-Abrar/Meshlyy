@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { apiClient, setAccessTokenGetter, isApiError } from '../utils/apiClient';
+import { apiClient, setAccessTokenGetter, isApiError, clearApiCache } from '../utils/apiClient';
 
 const AuthContext = createContext(null);
 
@@ -67,6 +67,7 @@ export const AuthProvider = ({ children }) => {
 
   const hydrateUserFromSession = useCallback(async (session) => {
     if (!session?.access_token) {
+      clearApiCache();
       setUser(null);
       setAccessToken(null);
       accessTokenRef.current = null;
@@ -225,6 +226,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
+    clearApiCache();
     setUser(null);
     setAccessToken(null);
   }, []);

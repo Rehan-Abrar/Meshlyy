@@ -15,10 +15,11 @@ const INITIAL_MESSAGES = [
   },
 ];
 
-const SMALL_TALK_PATTERN = /^(hi+|hello+|hey+|yo+|hola+|salam+|assalam\s?o\s?alaikum|helloo+)\b/i;
+const SMALL_TALK_PATTERN = /^(hi+|hello+|hey+|yo+|hola+|salam+|assalam\s?o\s?alaikum|helloo+|good\s?(morning|evening|afternoon|night)|sup+|what'?s\s?up|howdy|greetings)\b/i;
+const GENERAL_CONVERSATION_PATTERN = /^(how\s+are\s+you|how\s*'?s\s+it\s+going|what\s+can\s+you\s+do|who\s+are\s+you|tell\s+me\s+about|thank(s|\s+you)|bye|goodbye|see\s+you|nice|cool|great|ok(ay)?|got\s+it|i\s+see|sure|please|help\s*$|what\s+is\s+meshlyy)/i;
 const DISCOVERY_INTENT_PATTERN = /\b(find|search|discover|source|who should|which creator|which influencer|creator|influencer)\b/i;
 const BRIEF_INTENT_PATTERN = /\b(campaign brief|write a brief|create a brief|generate a brief|brief)\b/i;
-const STRATEGY_INTENT_PATTERN = /\b(strategy|help me plan|plan|planning)\b/i;
+const STRATEGY_INTENT_PATTERN = /\b(strategy|help me plan|plan|planning|create campaign|start campaign|new campaign)\b/i;
 const FIT_SCORE_INTENT_PATTERN = /\b(score|fit|good fit|should i work with|work with)\b/i;
 const FIT_SCORE_RETRYABLE_CODES = new Set(['INTERNAL_ERROR', 'REQUEST_TIMEOUT', 'AI_UNAVAILABLE', 'AI_RATE_LIMIT']);
 
@@ -27,7 +28,8 @@ function createMessageId() {
 }
 
 function isSmallTalk(prompt) {
-  return SMALL_TALK_PATTERN.test(prompt.trim());
+  const trimmed = prompt.trim();
+  return SMALL_TALK_PATTERN.test(trimmed) || GENERAL_CONVERSATION_PATTERN.test(trimmed);
 }
 
 function detectIntent(prompt) {
@@ -47,10 +49,23 @@ function detectIntent(prompt) {
     return 'strategy';
   }
 
-  return 'strategy';
+  return 'general_chat';
 }
 
-function buildSmallTalkReply() {
+function buildSmallTalkReply(prompt) {
+  const lower = prompt.trim().toLowerCase();
+  if (/how\s+are\s+you/i.test(lower)) {
+    return "I'm doing great, thanks for asking! 😊 I'm your Meshlyy Co-pilot. I can help you with:\n\n• **Strategy** — Plan your campaign approach\n• **Briefs** — Generate campaign briefs\n• **Discovery** — Find matching creators\n• **Fit Scores** — Score creator compatibility\n\nWhat would you like to do?";
+  }
+  if (/thank/i.test(lower)) {
+    return "You're welcome! Let me know if there's anything else I can help with. 🙌";
+  }
+  if (/bye|goodbye|see\s+you/i.test(lower)) {
+    return "Goodbye! Come back anytime you need campaign help. 👋";
+  }
+  if (/what\s+can\s+you\s+do|who\s+are\s+you|help\s*$/i.test(lower)) {
+    return "I'm your AI Campaign Co-pilot! Here's what I can do:\n\n• **\"Find creators\"** — Search for matching creators\n• **\"Create a brief for [goal]\"** — Generate a campaign brief\n• **\"Plan a strategy\"** — Get strategic recommendations\n• **\"Score @handle\"** — Get a fit score for a creator\n\nTry one of these to get started!";
+  }
   return 'Hey! I can generate strategy, briefs, creator discovery, and fit scores. Tell me what you want to do.';
 }
 
@@ -665,7 +680,7 @@ const BrandAIAssistant = () => {
     setInput('');
 
     if (isSmallTalk(prompt)) {
-      pushMessage({ role: 'assistant', text: buildSmallTalkReply() });
+      pushMessage({ role: 'assistant', text: buildSmallTalkReply(prompt) });
       return;
     }
 
@@ -678,8 +693,14 @@ const BrandAIAssistant = () => {
         await handleBriefIntent(prompt);
       } else if (intent === 'fit_score') {
         await handleFitScoreIntent(prompt);
-      } else {
+      } else if (intent === 'strategy') {
         await handleStrategyIntent(prompt);
+      } else {
+        // general_chat — respond without API call
+        pushMessage({
+          role: 'assistant',
+          text: "I'm not sure what you'd like me to do. I can help you with:\n\n• **\"Find creators\"** — Search the creator database\n• **\"Write a brief for [your goal]\"** — Generate a campaign brief\n• **\"Plan a strategy\"** — Get strategic recommendations\n• **\"Score @handle\"** — Get a fit score for a creator\n\nTry being more specific about what you need!",
+        });
       }
     } catch (error) {
       let response = 'I hit a temporary issue. Please try again in a moment.';

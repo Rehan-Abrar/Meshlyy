@@ -126,25 +126,6 @@
   box-shadow: 0 0 0 1px var(--color-primary), 0 4px 12px rgba(186,158,255,0.15);
 }
 
-.aiSuggestion {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-.aiLabel {
-  font-size: var(--text-micro);
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-primary);
-}
-.aiSuggestion p {
-  font-size: var(--text-sm);
-  color: var(--color-on-surface-variant);
-  max-width: none;
-  line-height: 1.6;
-}
-
 /* Nav row */
 .navRow {
   display: flex;

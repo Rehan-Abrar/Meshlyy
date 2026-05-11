@@ -40,5 +40,5 @@ export const NICHES = [
 // === PLATFORMS ===
 export const PLATFORMS = ['Instagram', 'YouTube', 'TikTok', 'Twitter', 'LinkedIn', 'Pinterest'];
 
-// === API BASE (replace with actual endpoint) ===
-export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+// === API BASE ===
+export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/v1';

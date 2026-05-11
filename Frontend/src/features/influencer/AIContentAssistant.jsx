@@ -6,27 +6,48 @@ import styles from './AIContentAssistant.module.css';
 const LUMINA_AVATAR = 'AI';
 
 const QUICK_PROMPTS = [
-  'Write a hook for an Instagram Reel',
-  'Generate 5 caption ideas for a brand collab',
-  'Create a content schedule for next week',
-  'Draft a brand pitch email',
+  'Create a strong opening hook for this campaign',
+  'Give creator-specific dos and donts',
+  'Generate hashtag direction for this brief',
+  'Suggest caption direction for this content format',
 ];
 
-// Simulate AI response (replace with real API call)
-const getAIResponse = async (message) => {
-  await new Promise(r => setTimeout(r, 1200 + Math.random() * 800));
-  const responses = {
-    hook: "Here's a punchy hook: \"Stop scrolling — I tried this for 7 days so you don't have to.\" It creates curiosity and sets up a transformation arc instantly.",
-    caption: `Here are 5 caption ideas:\n\n1. "Collab that made sense before I even opened the package 📦"\n2. "This is what authentic partnerships look like — and here's the proof."\n3. "Brands that let you be you > everything else."\n4. "Added this to my routine and haven't looked back. Details in bio."\n5. "Not an ad. Wait — it is. But a good one 😂"`,
-    schedule: "Suggested schedule:\n**Mon** – Educational Reel (niche tip)\n**Wed** – Brand collab story + post\n**Fri** – Personal/lifestyle carousel\n**Sun** – Community Q&A story",
-    pitch: "Subject: Collaboration Inquiry — [Your Handle]\n\nHi [Brand Name] team,\n\nI'm [Name], a [niche] creator with [X] engaged followers on Instagram. My audience aligns closely with your brand's values around [shared value].\n\nI'd love to explore a collaboration for [specific campaign]. I've attached my media kit for your review.\n\nLooking forward to connecting!",
-  };
-  const lower = message.toLowerCase();
-  if (lower.includes('hook')) return responses.hook;
-  if (lower.includes('caption')) return responses.caption;
-  if (lower.includes('schedule')) return responses.schedule;
-  if (lower.includes('pitch') || lower.includes('email')) return responses.pitch;
-  return `Great question! For "${message}", I'd recommend starting with understanding your audience's core pain point, then crafting content that shows transformation — not just promotion. Want me to go deeper on any specific direction?`;
+const SMALL_TALK_PATTERN = /^(hi+|hello+|hey+|yo+|hola+|salam+|how\s+are\s+you|what'?s\s?up|good\s?(morning|evening|afternoon|night)|thank(s|\s+you)|bye|goodbye|who\s+are\s+you|help\s*$)/i;
+
+const formatList = (items) => {
+  if (!Array.isArray(items) || items.length === 0) return '- N/A';
+  return items.map((item) => `- ${item}`).join('\n');
+};
+
+const formatHashtags = (tags) => {
+  if (!Array.isArray(tags) || tags.length === 0) return 'N/A';
+  return tags.map((tag) => (String(tag).startsWith('#') ? tag : `#${tag}`)).join(' ');
+};
+
+const formatContentBrief = (result, selectedFormat) => {
+  return [
+    `Content Brief (${selectedFormat.toUpperCase()})`,
+    '',
+    `Hook Idea: ${result.hookIdea || 'N/A'}`,
+    '',
+    `Tone Guidance:\n${result.toneGuidance || 'N/A'}`,
+    '',
+    `Format Guidance:\n${result.formatGuidance || 'N/A'}`,
+    '',
+    `Talking Points:\n${formatList(result.talkingPoints)}`,
+    '',
+    `Do:\n${formatList(result.dos)}`,
+    '',
+    `Don't:\n${formatList(result.donts)}`,
+    '',
+    `Caption Direction:\n${result.captionDirection || 'N/A'}`,
+    '',
+    `Creative Notes:\n${result.creativeNotes || 'N/A'}`,
+    '',
+    `Suggested Hashtags: ${formatHashtags(result.suggestedHashtags)}`,
+    '',
+    `Call To Action: ${result.callToAction || 'N/A'}`,
+  ].join('\n');
 };
 
 const Message = ({ msg }) => (
@@ -71,10 +92,19 @@ const AIContentAssistant = () => {
         const response = await apiClient.get('/collaborations/incoming');
         const rows = response.data || [];
         if (!ignore) {
-          const options = rows
-            .map((row) => row.campaign)
-            .filter(Boolean)
-            .map((campaign) => ({ id: campaign.id, title: campaign.title || campaign.id }));
+          const eligible = rows.filter((row) => ['PENDING', 'ACCEPTED'].includes(String(row.status || '').toUpperCase()));
+          const map = new Map();
+
+          eligible.forEach((row) => {
+            const campaign = row.campaign;
+            if (!campaign?.id || map.has(campaign.id)) return;
+            map.set(campaign.id, {
+              id: campaign.id,
+              title: campaign.title || campaign.id,
+            });
+          });
+
+          const options = Array.from(map.values());
           setCampaignOptions(options);
           if (options[0]?.id) setCampaignId(options[0].id);
         }
@@ -96,23 +126,44 @@ const AIContentAssistant = () => {
     setMessages(prev => [...prev, { role: 'user', text: trimmed }]);
     setTyping(true);
 
-    let reply;
-    if (campaignId) {
-      try {
-        const result = await apiClient.post('/ai/influencer/content-brief', {
-          campaignId,
-          contentFormat,
-        });
-        reply = JSON.stringify(result, null, 2);
-      } catch (error) {
-        const fallback = await getAIResponse(trimmed);
-        const reason = isApiError(error)
-          ? `Live AI brief unavailable (${error.code}: ${error.message}).`
-          : 'Live AI brief unavailable due to a network/runtime issue.';
-        reply = `${reason}\n\nShowing fallback guidance:\n\n${fallback}`;
+    // Small talk detection
+    if (SMALL_TALK_PATTERN.test(trimmed)) {
+      setTyping(false);
+      const lower = trimmed.toLowerCase();
+      let reply = "Hey! I'm Lumina, your content co-pilot. Select a campaign above and ask me to generate hooks, captions, scripts, or hashtag strategies!";
+      if (/how\s+are\s+you/i.test(lower)) {
+        reply = "I'm doing great, thanks! 😊 I'm ready to help you create amazing content. Select a campaign from the dropdown above and I'll generate a tailored content brief for you!";
+      } else if (/thank/i.test(lower)) {
+        reply = "You're welcome! Happy to help with your content. 🙌";
+      } else if (/bye|goodbye/i.test(lower)) {
+        reply = "See you later! Come back when you need content help. 👋";
+      } else if (/who\s+are\s+you|help/i.test(lower)) {
+        reply = "I'm Lumina, your AI content co-pilot! Here's what I can do:\n\n• Generate content briefs for your campaigns\n• Write hooks, captions, and scripts\n• Suggest hashtag strategies\n• Provide dos and don'ts for content creation\n\nSelect a campaign from the dropdown, then ask me anything!";
       }
-    } else {
-      reply = await getAIResponse(trimmed);
+      setMessages(prev => [...prev, { role: 'ai', text: reply }]);
+      return;
+    }
+
+    if (!campaignId) {
+      setTyping(false);
+      setMessages(prev => [...prev, {
+        role: 'ai',
+        text: 'Please select a campaign from the dropdown above first, then I can generate a live content brief tailored to that campaign.',
+      }]);
+      return;
+    }
+
+    let reply;
+    try {
+      const result = await apiClient.post('/ai/influencer/content-brief', {
+        campaignId,
+        contentFormat,
+      });
+      reply = formatContentBrief(result || {}, contentFormat);
+    } catch (error) {
+      reply = isApiError(error)
+        ? `AI brief request failed (${error.code}: ${error.message}).`
+        : 'AI brief request failed due to a network/runtime issue.';
     }
 
     setTyping(false);

@@ -23,11 +23,13 @@ function secondsUntilMidnightUTC(): number {
  */
 export async function aiBudgetMiddleware(req: Request, res: Response, next: NextFunction) {
   try {
-    if (!req.authContext?.brandId) {
+    if (!req.authContext?.userId) {
       return sendError(res, 401, 'INVALID_TOKEN', 'Authentication required');
     }
-    
-    const budgetKey = `ai:brand:${req.authContext.brandId}`;
+
+    const budgetKey = req.authContext.brandId
+      ? `ai:brand:${req.authContext.brandId}`
+      : `ai:user:${req.authContext.userId}`;
     const spend = await budgetStore.getSpend(budgetKey);
     
     if (spend >= config.DAILY_AI_TOKEN_CAP) {

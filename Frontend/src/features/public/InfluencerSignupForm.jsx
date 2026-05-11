@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import logo from '../../assets/logo.png';
 import Select from '../../components/common/Select';
+import FileUpload from '../../components/common/FileUpload';
 import styles from './InfluencerSignupForm.module.css';
 
 const CREATOR_NICHES = [
@@ -23,9 +24,30 @@ const PLATFORMS = ['Instagram', 'TikTok', 'YouTube', 'Twitter / X', 'LinkedIn'];
 const GENDERS = ['Female', 'Male', 'Non-Binary', 'Prefer not to say'];
 const CONTENT_TYPES = ['User Generated Content (UGC)', 'Sponsored Posts', 'Brand Ambassadorship', 'Affiliate Marketing', 'Product Reviews'];
 
+const DEFAULT_RATE_BY_AUDIENCE = {
+  'Under 10K (Nano)': 150,
+  '10K – 50K (Micro)': 350,
+  '50K – 250K (Mid-tier)': 800,
+  '250K – 1M (Macro)': 1800,
+  '1M+ (Mega)': 3500,
+};
+
+const sanitizeHandle = (value) => String(value || '').trim().replace(/^@+/, '');
+
+const buildDefaultRateCards = (audience) => {
+  const basePrice = DEFAULT_RATE_BY_AUDIENCE[audience] ?? 500;
+  return [
+    {
+      serviceType: 'POST',
+      price: basePrice,
+      currency: 'USD',
+    },
+  ];
+};
+
 const InfluencerSignupForm = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { signup } = useAuth();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -33,6 +55,7 @@ const InfluencerSignupForm = () => {
     fullName: '',
     email: '',
     password: '',
+    confirmPassword: '',
     gender: '',
     location: '',
     handle: '',
@@ -42,6 +65,8 @@ const InfluencerSignupForm = () => {
     audience: '',
     contentTypes: '',
     verifiedConsent: false,
+    profilePicUrl: '',
+    mediaKitUrl: '',
   });
 
   const handleChange = (field, value) => {
@@ -54,6 +79,8 @@ const InfluencerSignupForm = () => {
     if (!formData.fullName) newErrors.fullName = 'Full name is required';
     if (!formData.email.includes('@')) newErrors.email = 'Valid email is required';
     if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 chars';
+    if (!formData.confirmPassword) newErrors.confirmPassword = 'Confirm your password';
+    else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
     if (!formData.handle) newErrors.handle = 'Social handle is required';
     if (!formData.niche) newErrors.niche = 'Niche is required';
     if (!formData.audience) newErrors.audience = 'Audience size is required';
@@ -71,11 +98,21 @@ const InfluencerSignupForm = () => {
     }
 
     setLoading(true);
-    // Submit all data cleanly, ready for backend integration
-    const result = await login({
-      ...formData,
+    const onboardingPayload = {
+      igHandle: sanitizeHandle(formData.handle),
+      nichePrimary: formData.niche,
+      nicheSecondary: undefined,
+      bio: formData.bio || undefined,
+      portfolioUrl: formData.profilePicUrl || undefined,
+      mediaKitUrl: formData.mediaKitUrl || undefined,
+      rateCards: buildDefaultRateCards(formData.audience),
+    };
+
+    const result = await signup({
       role: 'influencer',
-      name: formData.fullName
+      email: formData.email,
+      password: formData.password,
+      onboardingPayload,
     });
 
     if (result.success) {
@@ -146,6 +183,21 @@ const InfluencerSignupForm = () => {
               {errors.password && <span className={styles.fieldError}>{errors.password}</span>}
             </div>
             <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Confirm Password <span style={{color: 'var(--color-primary)'}}>*</span></label>
+              <input
+                type="password"
+                className={styles.input}
+                placeholder="••••••••"
+                value={formData.confirmPassword}
+                onChange={(e) => handleChange('confirmPassword', e.target.value)}
+                required
+              />
+              {errors.confirmPassword && <span className={styles.fieldError}>{errors.confirmPassword}</span>}
+            </div>
+          </div>
+          
+          <div className={styles.grid2} style={{ marginTop: '1.5rem' }}>
+            <div className={styles.fieldGroup}>
               <label className={styles.fieldLabel}>Top Location (City, Country)</label>
               <input
                 type="text"
@@ -177,13 +229,14 @@ const InfluencerSignupForm = () => {
           </div>
           
           <div style={{ marginBottom: '1.5rem' }}>
-             <div className={styles.uploadBox} style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--color-primary-variant)'}}></div>
-                <div>
-                   <div className={styles.uploadText} style={{ textAlign: 'left' }}>Upload Profile Picture <span style={{color: 'var(--color-primary)'}}>*</span></div>
-                   <div className={styles.uploadSub}>Show brands who you are</div>
-                </div>
-             </div>
+            <FileUpload
+              kind="avatar"
+              accept="image/*"
+              maxSizeMB={8}
+              previewShape="circle"
+              label="Upload Profile Picture"
+              onUploadComplete={(url) => handleChange('profilePicUrl', url || '')}
+            />
           </div>
 
           <div className={styles.grid2}>
@@ -253,10 +306,13 @@ const InfluencerSignupForm = () => {
             </div>
           </div>
           <div style={{ marginTop: '2rem' }}>
-             <div className={styles.uploadBox}>
-                <div className={styles.uploadText}>Upload Media Kit or Portfolio (Required for verification) <span style={{color: 'var(--color-primary)'}}>*</span></div>
-                <div className={styles.uploadSub}>PDF or Link to Deck</div>
-             </div>
+            <FileUpload
+              kind="media-kit"
+              accept=".pdf,.ppt,.pptx,.doc,.docx"
+              maxSizeMB={30}
+              label="Upload Media Kit or Portfolio"
+              onUploadComplete={(url) => handleChange('mediaKitUrl', url || '')}
+            />
           </div>
         </section>
 

@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import AuroraBackground from '../../components/common/AuroraBackground';
 import Button from '../../components/common/Button';
+import { apiClient } from '../../utils/apiClient';
 import logo from '../../assets/logo.png';
 import styles from './LandingPage.module.css';
 
@@ -47,6 +49,38 @@ const LandingPage = () => {
     return <Navigate to={`/${user.role}/dashboard`} replace />;
   }
 
+  // Waitlist state
+  const [waitlistEmail, setWaitlistEmail] = useState('');
+  const [waitlistRole, setWaitlistRole] = useState('');
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
+  const [waitlistSuccess, setWaitlistSuccess] = useState(false);
+  const [waitlistError, setWaitlistError] = useState('');
+
+  const handleWaitlistSubmit = async (e) => {
+    e.preventDefault();
+    setWaitlistError('');
+    if (!waitlistEmail.trim()) {
+      setWaitlistError('Please enter your email.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(waitlistEmail)) {
+      setWaitlistError('Please enter a valid email address.');
+      return;
+    }
+    setWaitlistLoading(true);
+    try {
+      await apiClient.post('/waitlist', {
+        email: waitlistEmail.trim(),
+        role: waitlistRole || undefined,
+      });
+      setWaitlistSuccess(true);
+    } catch (err) {
+      setWaitlistError(err?.message || 'Something went wrong. Please try again.');
+    } finally {
+      setWaitlistLoading(false);
+    }
+  };
+
   return (
     <div className={styles.page}>
       {/* ── HERO with Aurora ── */}
@@ -82,7 +116,7 @@ const LandingPage = () => {
           </div>
           
           {/* Logo mesh as hero visual moved to right side inside wrapper */}
-          <img src={logo} alt="Meshlyy network logo" className={styles.heroLogo} aria-hidden="true" />
+          <img src={logo} alt="Meshlyy network logo" className={styles.heroLogo} loading="lazy" aria-hidden="true" />
         </div>
         </section>
       </AuroraBackground>
@@ -113,6 +147,50 @@ const LandingPage = () => {
               desc="AI-powered brief generation, optimization suggestions, and content strategy — built in."
             />
           </div>
+        </div>
+      </section>
+
+      {/* ── WAITLIST ── */}
+      <section className={styles.waitlistSection} aria-labelledby="waitlist-heading">
+        <div className={styles.waitlistInner}>
+          <span className="micro-label">Early Access</span>
+          <h2 id="waitlist-heading" className={styles.waitlistHeadline}>
+            Be the first to know
+          </h2>
+          <p className={styles.waitlistSub}>
+            Join our waitlist to get early access and exclusive features before everyone else.
+          </p>
+          {waitlistSuccess ? (
+            <div className={styles.waitlistSuccessBanner}>
+              <span className={styles.waitlistSuccessIcon}>✓</span>
+              <span>You're on the list! We'll be in touch soon.</span>
+            </div>
+          ) : (
+            <form className={styles.waitlistForm} onSubmit={handleWaitlistSubmit}>
+              <div className={styles.waitlistRoleToggle}>
+                <button type="button" className={`${styles.roleToggleBtn} ${waitlistRole === 'brand' ? styles.roleToggleActive : ''}`} onClick={() => setWaitlistRole(waitlistRole === 'brand' ? '' : 'brand')}>
+                  I'm a Brand
+                </button>
+                <button type="button" className={`${styles.roleToggleBtn} ${waitlistRole === 'influencer' ? styles.roleToggleActive : ''}`} onClick={() => setWaitlistRole(waitlistRole === 'influencer' ? '' : 'influencer')}>
+                  I'm a Creator
+                </button>
+              </div>
+              <div className={styles.waitlistInputRow}>
+                <input
+                  type="email"
+                  className={styles.waitlistInput}
+                  placeholder="Enter your email address..."
+                  value={waitlistEmail}
+                  onChange={(e) => { setWaitlistEmail(e.target.value); setWaitlistError(''); }}
+                  aria-label="Email for waitlist"
+                />
+                <Button variant="primary" type="submit" disabled={waitlistLoading}>
+                  {waitlistLoading ? 'Joining...' : 'Join Waitlist'}
+                </Button>
+              </div>
+              {waitlistError && <p className={styles.waitlistErrorText}>{waitlistError}</p>}
+            </form>
+          )}
         </div>
       </section>
 
