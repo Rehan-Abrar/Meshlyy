@@ -132,8 +132,8 @@
   position: absolute;
   left: 0;
   width: 100%;
-  height: 140%;
-  top: -20%;
+  height: 160%;
+  top: -30%;
   object-fit: cover;
   object-position: center center;
   transform: translate3d(0, var(--bg-y, 0px), 0) scale(var(--bg-zoom, 1));
@@ -315,10 +315,8 @@
 }
 
 .heroAccent {
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #c4b5fd;
+  -webkit-text-fill-color: #c4b5fd;
 }
 
 .heroSub {
@@ -341,21 +339,27 @@
 }
 
 .heroCTA .heroSignIn {
-  background: rgba(186, 158, 255, 0.16);
+  background:
+    linear-gradient(135deg, rgba(139, 92, 246, 0.82), rgba(167, 139, 250, 0.68));
   color: #ffffff;
-  border: 1.5px solid rgba(186, 158, 255, 0.85);
+  font-weight: 700;
+  border: 1.5px solid rgba(221, 214, 254, 0.98);
   box-shadow:
-    0 0 0 1px rgba(186, 158, 255, 0.18),
-    0 8px 24px rgba(124, 92, 255, 0.28);
-  backdrop-filter: blur(8px);
+    0 0 0 1px rgba(255, 255, 255, 0.22),
+    0 10px 28px rgba(124, 58, 237, 0.44),
+    0 0 22px rgba(167, 139, 250, 0.34);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px);
 }
 
 .heroCTA .heroSignIn:hover:not(:disabled) {
-  background: rgba(186, 158, 255, 0.28);
-  border-color: rgba(208, 188, 255, 1);
+  background:
+    linear-gradient(135deg, rgba(139, 92, 246, 0.92), rgba(196, 181, 253, 0.78));
+  border-color: #ffffff;
   box-shadow:
-    0 0 0 1px rgba(186, 158, 255, 0.3),
-    0 10px 30px rgba(124, 92, 255, 0.4);
+    0 0 0 1px rgba(255, 255, 255, 0.34),
+    0 12px 34px rgba(124, 58, 237, 0.52),
+    0 0 28px rgba(196, 181, 253, 0.42);
   transform: translateY(-1px);
 }
 
