@@ -340,6 +340,25 @@
   margin-bottom: var(--space-sm);
 }
 
+.heroCTA .heroSignIn {
+  background: rgba(186, 158, 255, 0.16);
+  color: #ffffff;
+  border: 1.5px solid rgba(186, 158, 255, 0.85);
+  box-shadow:
+    0 0 0 1px rgba(186, 158, 255, 0.18),
+    0 8px 24px rgba(124, 92, 255, 0.28);
+  backdrop-filter: blur(8px);
+}
+
+.heroCTA .heroSignIn:hover:not(:disabled) {
+  background: rgba(186, 158, 255, 0.28);
+  border-color: rgba(208, 188, 255, 1);
+  box-shadow:
+    0 0 0 1px rgba(186, 158, 255, 0.3),
+    0 10px 30px rgba(124, 92, 255, 0.4);
+  transform: translateY(-1px);
+}
+
 .heroNote {
   display: flex;
   align-items: center;
