@@ -98,7 +98,7 @@ const EARLY_BRANDS = [
   { name: 'Grance Cosmetics', cat: 'Cosmetics · Beauty' },
 ];
 
-const PARALLAX_TRAVEL_RATIO = 0.16;
+const PARALLAX_TRAVEL_RATIO = 0.24;
 const PARALLAX_MIN_SCALE = 100;
 const PARALLAX_MAX_SCALE = 102;
 
