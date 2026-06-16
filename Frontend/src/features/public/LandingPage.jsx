@@ -375,7 +375,7 @@ const LandingPage = () => {
                 <Button variant="primary" size="lg" onClick={() => navigate('/role-select')}>
                   Get Started Free
                 </Button>
-                <Button variant="secondary" size="lg" onClick={() => navigate('/login')}>
+                <Button variant="secondary" size="lg" className={styles.heroSignIn} onClick={() => navigate('/login')}>
                   Sign In
                 </Button>
               </div>
