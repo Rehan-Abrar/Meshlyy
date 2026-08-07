@@ -10,13 +10,8 @@ import img1 from '../../assets/website/1.png';
 import img4 from '../../assets/website/4.png';
 import img6 from '../../assets/website/6.png';
 import img8 from '../../assets/website/8.png';
-import img9 from '../../assets/website/9.png';
 import img10 from '../../assets/website/10.png';
 import img11 from '../../assets/website/11.png';
-import shahveerPhoto from '../../assets/partners/shahveer.jpg';
-import dayyanPhoto from '../../assets/partners/dayyan.jpg';
-import jafPerfumesPhoto from '../../assets/partners/jaf_perfumes.jpg';
-import zeroDegreePhoto from '../../assets/partners/0degree.jpg';
 import styles from './LandingPage.module.css';
 
 /* ─── Sub-components ─────────────────────────────────────────── */
@@ -33,46 +28,6 @@ const MARKET_STATS = [
   { number: '80M+', label: 'Social media users' },
 ];
 
-const FEATURED_CREATORS = [
-  {
-    initials: 'SJ',
-    name: 'Shahveer Jafry',
-    photo: shahveerPhoto,
-    niche: 'Fashion · Lifestyle',
-    stat: '4.3M',
-    sub: 'followers · 667K avg views/post',
-    variant: 'violet',
-  },
-  {
-    initials: 'DY',
-    name: 'Dayyan',
-    photo: dayyanPhoto,
-    niche: 'Entertainment · Viral',
-    stat: '1.6M',
-    sub: 'avg views/video · 500K+ followers',
-    variant: 'cyan',
-  },
-];
-
-const MORE_CREATORS = [
-  { name: 'Rubab Malik', stat: '45K', niche: 'Fashion' },
-  { name: 'Meerab Fatima', stat: '29K', niche: 'Fashion' },
-  { name: 'Mahnoor Waseem', stat: '14K', niche: 'Beauty' },
-  { name: 'Hadia Afzal', stat: '6.6K', niche: 'Lifestyle' },
-  { name: 'Irta', stat: '', niche: 'Art' },
-  { name: 'Minahil Faisal', stat: '', niche: 'Fashion' },
-  { name: 'Habiba Kaneez', stat: '', niche: 'Lifestyle' },
-  { name: 'Saud Sheikh', stat: '', niche: 'Content' },
-  { name: 'Abdullah Sultan', stat: '', niche: 'Creative' },
-  { name: 'Rana Nasrullah', stat: '', niche: 'Food' },
-  { name: 'Aun Laique', stat: '', niche: 'Lifestyle' },
-];
-
-const FEATURED_BRANDS = [
-  { initials: 'JAF', name: 'JAF Perfumes', photo: jafPerfumesPhoto, cat: 'Fragrance · Beauty' },
-  { initials: '0°', name: 'Zero Degree', photo: zeroDegreePhoto, cat: 'Food · F&B' },
-];
-
 const BRAND_BENTO = [
   { label: 'Discovery', title: '40+ match signals', desc: 'Audience quality, brand affinity, content style — scored in one view.' },
   { label: 'Speed', title: '10 min shortlists', desc: 'Skip the DM chaos. Start with ranked creators who actually fit.' },
@@ -85,17 +40,6 @@ const CREATOR_BENTO = [
   { label: 'Pitch', title: 'AI assistant', desc: 'Write sharper proposals and content ideas in minutes.' },
   { label: 'Campaigns', title: 'Exclusive deals', desc: 'Access brand campaigns you won\'t find in DMs.' },
   { label: 'Profile', title: 'Trust signals', desc: 'Verified stats brands actually believe.' },
-];
-
-const EARLY_BRANDS = [
-  { name: 'Gen', cat: 'Fashion' },
-  { name: 'Void Leather', cat: 'Leather · Fashion' },
-  { name: 'MN Textile', cat: 'Textile · Fashion' },
-  { name: 'Wear Howl', cat: 'Fashion' },
-  { name: 'Blush × Beads', cat: 'Beauty · Accessories' },
-  { name: 'Black Studio', cat: 'Creative · Fashion' },
-  { name: 'Meatex Executive', cat: 'F&B · Dining' },
-  { name: 'Grance Cosmetics', cat: 'Cosmetics · Beauty' },
 ];
 
 const PARALLAX_TRAVEL_RATIO = 0.16;
@@ -637,85 +581,6 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
-
-      {/* ── TRUST / PROOF ───────────────────────────────── */}
-      <ParallaxSection
-        className={styles.trustSection}
-        imageKey="trust"
-        imageSrc={img9}
-        aria-labelledby="trust-heading"
-      >
-        <div className={styles.sectionInner}>
-          <Reveal>
-            <div className={styles.sectionLabel}>Who's on Meshlyy</div>
-            <h2 id="trust-heading" className={styles.sectionHeadline}>
-              Creators and brands already building here
-            </h2>
-            <p className={styles.sectionSub}>
-              From fashion and lifestyle to F&B and beauty — real profiles, real campaigns, early access.
-            </p>
-          </Reveal>
-
-          <div className={styles.featuredCreators}>
-            {FEATURED_CREATORS.map((creator, i) => (
-              <Reveal key={creator.name} delay={i * 80}>
-                <article className={`${styles.featuredCreator} ${styles[`featuredCreator--${creator.variant}`]}`}>
-                  <div className={styles.featuredTop}>
-                    {creator.photo ? (
-                      <img src={creator.photo} alt="" className={styles.featuredAvatarImg} loading="lazy" />
-                    ) : (
-                      <span className={styles.featuredAvatar}>{creator.initials}</span>
-                    )}
-                    <div>
-                      <div className={styles.featuredName}>{creator.name}</div>
-                      <div className={styles.featuredNiche}>{creator.niche}</div>
-                    </div>
-                  </div>
-                  <div className={styles.featuredStat}>{creator.stat}</div>
-                  <div className={styles.featuredSub}>{creator.sub}</div>
-                </article>
-              </Reveal>
-            ))}
-          </div>
-
-          <div className={styles.creatorChips}>
-            {MORE_CREATORS.map((creator) => (
-              <span key={creator.name} className={styles.creatorChip}>
-                {creator.name}
-                {creator.stat && <span className={styles.creatorChipStat}>{creator.stat}</span>}
-                <span className={styles.creatorChipTag}>{creator.niche}</span>
-              </span>
-            ))}
-          </div>
-
-          <div className={styles.brandSection}>
-            <div className={styles.brandSectionLabel}>Brands on the platform</div>
-            <div className={styles.brandFeaturedRow}>
-              {FEATURED_BRANDS.map((brand) => (
-                <div key={brand.name} className={`${styles.brandCard} ${styles['brandCard--featured']}`}>
-                  {brand.photo ? (
-                    <img src={brand.photo} alt="" className={styles.brandLogoImg} loading="lazy" />
-                  ) : (
-                    <span className={styles.brandLogo}>{brand.initials}</span>
-                  )}
-                  <div>
-                    <div className={styles.brandName}>{brand.name}</div>
-                    <div className={styles.brandCat}>{brand.cat}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className={styles.brandGrid}>
-              {EARLY_BRANDS.map((brand) => (
-                <div key={brand.name} className={styles.brandCard}>
-                  <div className={styles.brandName}>{brand.name}</div>
-                  <div className={styles.brandCat}>{brand.cat}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </ParallaxSection>
 
       {/* ── PRICING ─────────────────────────────────────── */}
       <ParallaxSection
