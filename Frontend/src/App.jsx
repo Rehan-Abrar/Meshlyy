@@ -2,9 +2,8 @@ import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import AppLayout from './layouts/AppLayout';
+import LandingPage from './features/public/LandingPage';
 
-// Lazy-loaded pages for code splitting
-const LandingPage = lazy(() => import('./features/public/LandingPage'));
 const RoleSelection = lazy(() => import('./features/public/RoleSelection'));
 const SignupForm = lazy(() => import('./features/public/SignupForm'));
 const LoginForm = lazy(() => import('./features/public/LoginForm'));
