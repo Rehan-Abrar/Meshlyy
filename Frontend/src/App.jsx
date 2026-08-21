@@ -66,9 +66,11 @@ const ProtectedRoute = ({ allowedRole, children }) => {
 const App = () => (
   <Suspense fallback={<PageLoader />}>
     <Routes>
+      {/* Landing page renders standalone with its own nav — no AppLayout */}
+      <Route path="/" element={<LandingPage />} />
+
       <Route element={<AppLayout />}>
         {/* === PUBLIC === */}
-        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginForm />} />
         <Route path="/role-select" element={<RoleSelection />} />
         <Route path="/signup/:role" element={<SignupForm />} />
@@ -97,5 +99,6 @@ const App = () => (
     </Routes>
   </Suspense>
 );
+
 
 export default App;

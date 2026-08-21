@@ -1,0 +1,542 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
+
+@import 'tailwindcss';
+
+@theme inline {
+  --color-brand: #2D1B69;
+  --color-brand-dark: #1e1148;
+  --color-ink: #111111;
+  --color-cream: #F5F1E8;
+  --color-muted: #6B6B6B;
+  --color-border: #E6E6E2;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  color: #111111;
+  background: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+}
+
+::selection {
+  background: #2D1B69;
+  color: #fff;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #bbb;
+}
+
+/* Reusable hover utilities */
+
+/* Primary — purple bg, darkens on hover */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 20px;
+  background: #2D1B69;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  line-height: 1;
+  transition: background 0.15s;
+}
+.btn-primary:hover {
+  background: #1e1148;
+}
+
+/* Primary on dark — white bg, tints on hover */
+.btn-primary-on-dark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 20px;
+  background: #fff;
+  color: #2D1B69;
+  border: none;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  line-height: 1;
+  transition: background 0.15s;
+}
+.btn-primary-on-dark:hover {
+  background: #e0e0e0;
+}
+
+/* Secondary — outlined, border darkens on hover */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  background: #fff;
+  color: #111;
+  border: 1px solid #E6E6E2;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  line-height: 1;
+  transition: border-color 0.15s;
+}
+.btn-secondary:hover {
+  border-color: #999;
+}
+
+/* Small — section actions, border darkens on hover */
+.btn-sm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 14px;
+  background: #fff;
+  color: #2D1B69;
+  border: 1px solid rgba(45, 27, 105, 0.28);
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  letter-spacing: -0.1px;
+  line-height: 1;
+  transition: border-color 0.15s;
+}
+.btn-sm:hover {
+  border-color: #2D1B69;
+}
+
+/* Danger — secondary style, border turns red on hover */
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  background: #fff;
+  color: #555;
+  border: 1px solid #E6E6E2;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  line-height: 1;
+  transition: border-color 0.15s, color 0.15s;
+}
+.btn-danger:hover {
+  border-color: #DC2626;
+  color: #DC2626;
+}
+
+/* Inline ghost link-style button */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: #2D1B69;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  transition: gap 0.2s ease, opacity 0.15s;
+}
+.btn-ghost:hover {
+  gap: 8px;
+  opacity: 0.8;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 400;
+  color: #444;
+  text-decoration: none;
+  transition: background 0.12s, color 0.12s;
+}
+.nav-link:hover {
+  background: #f5f5f5;
+  color: #111;
+}
+.nav-link.active {
+  background: rgba(45, 27, 105, 0.08);
+  color: #2D1B69;
+  font-weight: 600;
+}
+
+.row-hover {
+  transition: background 0.1s;
+}
+.row-hover:hover {
+  background: #fafafa;
+}
+
+.card-hover {
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.card-hover:hover {
+  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+  border-color: #ccc;
+}
+
+.link-hover {
+  transition: color 0.12s;
+}
+.link-hover:hover {
+  color: #2D1B69;
+}
+
+.input-field {
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 14px;
+  border: 1px solid #E6E6E2;
+  border-radius: 999px;
+  outline: none;
+  color: #111;
+  background: #fff;
+  font-family: inherit;
+  line-height: 1;
+  transition: border-color 0.15s;
+}
+.input-field:focus {
+  border-color: #2D1B69;
+}
+.input-field::placeholder {
+  color: #aaa;
+}
+
+.font-mono {
+  font-family: 'DM Mono', 'Courier New', monospace;
+}
+
+/* Custom scrollbar for scrollable containers */
+.scrollable {
+  scrollbar-width: thin;
+  scrollbar-color: #ddd transparent;
+}
+
+.scrollable::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollable::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollable::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 3px;
+}
+
+.scrollable::-webkit-scrollbar-thumb:hover {
+  background: #bbb;
+}
+
+/* ========== MOBILE RESPONSIVE ========== */
+
+/* Layout wrapper */
+.layout-wrapper {
+  display: flex;
+  min-height: 100vh;
+  background: #fafafa;
+}
+
+/* Mobile header - hidden on desktop */
+.mobile-header {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background: #fff;
+  border-bottom: 1px solid #E6E6E2;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 45;
+}
+
+.hamburger-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #111;
+}
+
+/* Sidebar base styles */
+.sidebar {
+  width: 216px;
+  min-width: 216px;
+  background: #fff;
+  border-right: 1px solid #E6E6E2;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 40;
+}
+
+.admin-sidebar {
+  width: 200px;
+  min-width: 200px;
+  background: #111;
+  border-right: none;
+}
+
+/* Sidebar overlay for mobile */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 49;
+}
+
+/* ========== TABLET (max-width: 1024px) ========== */
+@media (max-width: 1024px) {
+  /* Dashboard grids */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+  
+  /* Tables */
+  table {
+    font-size: 13px;
+  }
+  
+  table th,
+  table td {
+    padding: 10px 12px !important;
+  }
+  
+  /* Cards */
+  .creator-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) !important;
+  }
+}
+
+/* ========== MOBILE (max-width: 768px) ========== */
+@media (max-width: 768px) {
+  /* Show mobile header */
+  .mobile-header {
+    display: flex;
+  }
+  
+  /* Sidebar becomes slide-in */
+  .sidebar {
+    position: fixed;
+    left: -216px;
+    top: 0;
+    height: 100vh;
+    transition: left 0.3s ease;
+    z-index: 50;
+  }
+  
+  .admin-sidebar {
+    left: -200px;
+  }
+  
+  .sidebar.sidebar-open {
+    left: 0;
+  }
+  
+  /* Add padding for mobile header */
+  .layout-wrapper {
+    padding-top: 56px;
+  }
+  
+  /* Dashboard padding */
+  main {
+    padding: 16px !important;
+  }
+  
+  /* Stats grid - single column on mobile */
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* All grids single column */
+  [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Tables - make scrollable */
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  
+  table thead,
+  table tbody,
+  table tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+  }
+  
+  /* Reduce padding on pages */
+  [style*="padding: 40px"] {
+    padding: 20px 16px !important;
+  }
+  
+  [style*="padding: 48px"] {
+    padding: 24px 16px !important;
+  }
+  
+  /* Font sizes */
+  h1 {
+    font-size: 24px !important;
+  }
+  
+  h2 {
+    font-size: 20px !important;
+  }
+  
+  h3 {
+    font-size: 18px !important;
+  }
+  
+  /* Buttons full width on mobile */
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    padding: 12px 20px !important;
+  }
+  
+  /* AI Assistant */
+  [style*="max-width: 700px"] {
+    max-width: 100% !important;
+    padding: 20px 16px !important;
+  }
+  
+  /* Forms */
+  .input-field {
+    width: 100% !important;
+  }
+  
+  /* Landing page responsive */
+  [style*="max-width: 1280px"] {
+    max-width: 100% !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  
+  [style*="max-width: 1200px"] {
+    max-width: 100% !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  
+  /* Hero section */
+  [style*="font-size: 64px"] {
+    font-size: 36px !important;
+    line-height: 1.2 !important;
+  }
+  
+  [style*="font-size: 48px"] {
+    font-size: 32px !important;
+    line-height: 1.2 !important;
+  }
+  
+  [style*="font-size: 42px"] {
+    font-size: 28px !important;
+    line-height: 1.2 !important;
+  }
+  
+  /* Pricing cards */
+  .pricing-card {
+    margin-bottom: 16px;
+  }
+  
+  /* Testimonials */
+  .testimonial-card {
+    margin-bottom: 16px;
+  }
+}
+
+/* ========== SMALL MOBILE (max-width: 480px) ========== */
+@media (max-width: 480px) {
+  /* Even smaller fonts */
+  h1 {
+    font-size: 20px !important;
+  }
+  
+  h2 {
+    font-size: 18px !important;
+  }
+  
+  /* Hero */
+  [style*="font-size: 36px"] {
+    font-size: 28px !important;
+  }
+  
+  /* Reduce spacing */
+  main {
+    padding: 12px !important;
+  }
+  
+  /* Buttons */
+  .btn-primary,
+  .btn-secondary {
+    font-size: 14px !important;
+    padding: 10px 16px !important;
+  }
+}
